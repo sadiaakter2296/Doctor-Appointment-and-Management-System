@@ -1,0 +1,57 @@
+# Dependencies
+DAMS-FRONTEND/node_modules/
+DAMS-Backend/vendor/
+
+# Environment variables
+DAMS-Backend/.env
+DAMS-FRONTEND/.env
+DAMS-FRONTEND/.env.local
+DAMS-FRONTEND/.env.development.local
+DAMS-FRONTEND/.env.test.local
+DAMS-FRONTEND/.env.production.local
+
+# Build outputs
+DAMS-FRONTEND/dist/
+DAMS-FRONTEND/build/
+
+# Logs
+DAMS-Backend/storage/logs/*
+!DAMS-Backend/storage/logs/.gitkeep
+DAMS-FRONTEND/npm-debug.log*
+DAMS-FRONTEND/yarn-debug.log*
+DAMS-FRONTEND/yarn-error.log*
+
+# Database
+DAMS-Backend/database/database.sqlite
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Laravel specific
+DAMS-Backend/bootstrap/cache/*
+DAMS-Backend/storage/app/*
+DAMS-Backend/storage/framework/cache/*
+DAMS-Backend/storage/framework/sessions/*
+DAMS-Backend/storage/framework/views/*
+
+# Temporary files
+*.tmp
+*.temp
+api-test.html
+
+# Package manager files
+package-lock.json
+yarn.lock
+composer.lock
