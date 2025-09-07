@@ -28,8 +28,8 @@ const DoctorDetails = () => {
 
   const doctor = {
     id: 1,
-    name: 'Dr. Sadia Rahman',
-    specialty: 'Cardiologist',
+    name: 'Dr. Sadia ',
+    specialty: 'Dermatologist',
     subSpecialty: 'Interventional Cardiology',
     experience: 15,
     phone: '+880 1712-345678',

@@ -246,45 +246,7 @@ const AppointmentManagement = () => {
             </div>
 
             {/* Filter Button */}
-            <div className="relative">
-              <button 
-                onClick={handleToggleFilters}
-                className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-xl hover:shadow-lg hover:shadow-gray-200/50 hover:scale-105 transition-all duration-300 border border-gray-200/50"
-              >
-                <Filter className="w-4 h-4" />
-                Filters
-                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`} />
-              </button>
-
-              {/* Filter Dropdown */}
-              {showFilters && (
-                <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-10 p-4">
-                  <h4 className="font-semibold text-gray-800 mb-3">Filter by Status</h4>
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => handleStatusFilter('All Statuses')}
-                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                        statusFilter === 'All Statuses' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
-                      }`}
-                    >
-                      All Statuses
-                    </button>
-                    {statuses.map(status => (
-                      <button
-                        key={status}
-                        onClick={() => handleStatusFilter(status)}
-                        className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-                          statusFilter === status ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
-                        }`}
-                      >
-                        {getStatusIcon(status)}
-                        {status}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+           
           </div>
 
           {/* Appointment Count */}
@@ -309,7 +271,7 @@ const AppointmentManagement = () => {
                       <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
                         <User className="w-8 h-8 text-white" />
                       </div>
-                      <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
+                      {/* Removed green bounded circle icon */}
                     </div>
                     <div>
                       <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-700 transition-colors duration-300">{appointment.patientName}</h3>

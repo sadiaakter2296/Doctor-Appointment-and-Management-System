@@ -24,7 +24,9 @@ const ReportsAnalytics = () => {
   const [showTimeDropdown, setShowTimeDropdown] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
-  const tabs = ['Overview', 'Appointment', 'Revenue', 'Patient', 'Doctor', 'Inventory'];
+  const tabs = ['Overview',];
+    //const tabs = ['Overview', 'Appointment', 'Revenue', 'Patient', 'Doctor', 'Inventory'];
+
 
   // Overview Statistics
   const overviewStats = [
@@ -224,18 +226,7 @@ const ReportsAnalytics = () => {
             </div>
             
             {/* Time Filter */}
-            <div className="relative">
-              <select 
-                value={timeFilter}
-                onChange={(e) => handleTimeFilterChange(e.target.value)}
-                className="appearance-none bg-white/70 backdrop-blur-xl border border-white/20 rounded-xl px-4 py-3 pr-10 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300 shadow-lg hover:shadow-xl text-gray-700"
-              >
-                {timeFilterOptions.map(option => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
-            </div>
+            
             
             {/* Export Button */}
             <button 
@@ -303,75 +294,7 @@ const ReportsAnalytics = () => {
               ))}
             </div>
 
-            {/* Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Appointment Status Distribution */}
-              <div className="group relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/20 to-blue-400/20 rounded-2xl blur"></div>
-                <div className="relative bg-white/70 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl p-8 hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer">
-                  <h3 className="text-xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent mb-6">
-                    Appointment Status Distribution
-                  </h3>
-                  <div className="space-y-6">
-                    {appointmentStatus.map((status, index) => (
-                      <div key={status.label} 
-                           className="flex items-center justify-between group/item"
-                           style={{ animationDelay: `${index * 150}ms` }}>
-                        <div className="flex items-center gap-4">
-                          <div className={`w-5 h-5 rounded-full ${status.color} group-hover/item:scale-110 transition-transform duration-300`}></div>
-                          <span className="text-sm font-medium text-gray-700 group-hover/item:text-gray-900 transition-colors duration-300">
-                            {status.label}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <span className="text-sm font-bold text-gray-900">{status.value}</span>
-                          <div className="w-24 bg-gray-200 rounded-full h-3 overflow-hidden">
-                            <div 
-                              className={`h-3 rounded-full ${status.color} transition-all duration-1000 ease-out`}
-                              style={{ width: `${status.percentage}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Revenue Breakdown */}
-              <div className="group relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-green-400/20 to-emerald-400/20 rounded-2xl blur"></div>
-                <div className="relative bg-white/70 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl p-8 hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer">
-                  <h3 className="text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-6">
-                    Revenue Breakdown
-                  </h3>
-                  <div className="space-y-6">
-                    {revenueBreakdown.map((revenue, index) => (
-                      <div key={revenue.label} 
-                           className="flex items-center justify-between group/item"
-                           style={{ animationDelay: `${index * 150}ms` }}>
-                        <div className="flex items-center gap-4">
-                          <div className={`w-5 h-5 rounded-full ${revenue.color} group-hover/item:scale-110 transition-transform duration-300`}></div>
-                          <span className="text-sm font-medium text-gray-700 group-hover/item:text-gray-900 transition-colors duration-300">
-                            {revenue.label}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <span className="text-sm font-bold text-gray-900">{revenue.value}</span>
-                          <div className="w-24 bg-gray-200 rounded-full h-3 overflow-hidden">
-                            <div 
-                              className={`h-3 rounded-full ${revenue.color} transition-all duration-1000 ease-out`}
-                              style={{ width: `${revenue.percentage}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
+           
             {/* Doctor Performance */}
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-br from-purple-400/10 to-pink-400/10 rounded-2xl blur"></div>

@@ -192,14 +192,7 @@ const InvoiceDetails = ({ invoiceId = 'INV-001', onClose, onEdit }) => {
           </button>
           
           <div className="flex items-center gap-3">
-            <button
-              onClick={handlePrint}
-              disabled={isLoading}
-              className="group p-3 bg-white/70 backdrop-blur-xl border border-white/20 rounded-xl hover:bg-white/90 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Print Invoice"
-            >
-              <Printer className="w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-colors duration-300" />
-            </button>
+           
             <button
               onClick={handleDownload}
               disabled={isLoading}
@@ -208,21 +201,8 @@ const InvoiceDetails = ({ invoiceId = 'INV-001', onClose, onEdit }) => {
             >
               <Download className="w-5 h-5 text-gray-600 group-hover:text-green-600 transition-colors duration-300" />
             </button>
-            <button
-              onClick={handleEmail}
-              disabled={isLoading}
-              className="group p-3 bg-white/70 backdrop-blur-xl border border-white/20 rounded-xl hover:bg-white/90 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Email Invoice"
-            >
-              <Mail className="w-5 h-5 text-gray-600 group-hover:text-purple-600 transition-colors duration-300" />
-            </button>
-            <button
-              onClick={handleCopyLink}
-              className="group p-3 bg-white/70 backdrop-blur-xl border border-white/20 rounded-xl hover:bg-white/90 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-110"
-              title="Copy Link"
-            >
-              <Copy className="w-5 h-5 text-gray-600 group-hover:text-orange-600 transition-colors duration-300" />
-            </button>
+            
+            
             <button
               onClick={onEdit}
               className="group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-medium flex items-center gap-2 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"

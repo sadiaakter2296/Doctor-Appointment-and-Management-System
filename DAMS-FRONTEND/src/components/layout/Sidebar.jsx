@@ -16,7 +16,7 @@ const navItems = [
   // { key: 'admissions', label: 'Admissions', icon: Bed, path: '/admissions' },
   // { key: 'emergency', label: 'Emergency Dept', icon: AlertTriangle, path: '/emergency' },
   // { key: 'prescriptions', label: 'Prescriptions', icon: FileText, path: '/prescriptions' },
-  { key: 'inventory', label: 'Inventory', icon: Package, path: '/inventory' },
+  // { key: 'inventory', label: 'Inventory', icon: Package, path: '/inventory' },
   { key: 'billing', label: 'Billing', icon: Banknote, path: '/billing' },
   { key: 'reports', label: 'Reports', icon: BarChart2, path: '/reports' },
   { key: 'notifications', label: 'Notifications', icon: Bell, path: '/notifications' },

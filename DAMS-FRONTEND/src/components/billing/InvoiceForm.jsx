@@ -212,17 +212,17 @@ const InvoiceForm = ({ onClose, invoice = null }) => {
             {/* Progress Steps */}
             <div className="hidden md:flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full transition-all duration-300 ${currentStep >= 1 ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
+                {/* Removed small rounded icon */}
                 <span className="text-xs text-gray-600">Details</span>
               </div>
               <div className="w-8 h-px bg-gray-300"></div>
               <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full transition-all duration-300 ${currentStep >= 2 ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
+                {/* Removed small rounded icon */}
                 <span className="text-xs text-gray-600">Items</span>
               </div>
               <div className="w-8 h-px bg-gray-300"></div>
               <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full transition-all duration-300 ${currentStep >= 3 ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
+                {/* Removed small rounded icon */}
                 <span className="text-xs text-gray-600">Review</span>
               </div>
             </div>
@@ -695,7 +695,7 @@ const InvoiceForm = ({ onClose, invoice = null }) => {
                   >
                     {isSubmitting ? (
                       <>
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        {/* Removed small rounded loading spinner icon */}
                         Processing...
                       </>
                     ) : (

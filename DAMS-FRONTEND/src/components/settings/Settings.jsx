@@ -219,11 +219,11 @@ const Settings = () => {
 
   const tabs = [
     { id: 'general', label: 'General', icon: SettingsIcon, color: 'from-blue-500 to-cyan-500' },
-    { id: 'appearance', label: 'Appearance', icon: Palette, color: 'from-purple-500 to-pink-500' },
-    { id: 'notification', label: 'Notifications', icon: Bell, color: 'from-green-500 to-emerald-500' },
-    { id: 'security', label: 'Security', icon: Shield, color: 'from-red-500 to-orange-500' },
-    { id: 'system', label: 'System', icon: Database, color: 'from-gray-500 to-slate-500' },
-    { id: 'billing', label: 'Billing', icon: CreditCard, color: 'from-yellow-500 to-amber-500' }
+   // { id: 'appearance', label: 'Appearance', icon: Palette, color: 'from-purple-500 to-pink-500' },
+   // { id: 'notification', label: 'Notifications', icon: Bell, color: 'from-green-500 to-emerald-500' },
+    //{ id: 'security', label: 'Security', icon: Shield, color: 'from-red-500 to-orange-500' },
+   // { id: 'system', label: 'System', icon: Database, color: 'from-gray-500 to-slate-500' },
+   // { id: 'billing', label: 'Billing', icon: CreditCard, color: 'from-yellow-500 to-amber-500' }
   ];
 
   const timezones = [
@@ -302,7 +302,7 @@ const Settings = () => {
                 Phone Number *
               </label>
               <div className="relative">
-                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-blue-500 transition-colors duration-300" />
+                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-red-700 w-5 h-5   " />
                 <input
                   type="text"
                   value={settings.phoneNumber}
@@ -319,7 +319,7 @@ const Settings = () => {
                 Email Address *
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-blue-500 transition-colors duration-300" />
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-900 w-5 h-5 group-focus-within:text-blue-500 transition-colors duration-300" />
                 <input
                   type="email"
                   value={settings.emailAddress}
@@ -336,7 +336,7 @@ const Settings = () => {
                 Website
               </label>
               <div className="relative">
-                <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-blue-500 transition-colors duration-300" />
+                <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-black-900 w-5 h-5 " />
                 <input
                   type="url"
                   value={settings.website}

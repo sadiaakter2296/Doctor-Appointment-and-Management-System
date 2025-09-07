@@ -88,7 +88,23 @@
         // Determine mock data based on URL
         let mockData = { success: true, data: [], message: 'Mock response - error intercepted' };
         
-        if (url.includes('patient')) {
+        if (url.includes('login')) {
+          // Let login requests go through to MockAuthService instead of using generic mock
+          throw new Error('Login request - pass to MockAuthService');
+        } else if (url.includes('register')) {
+          mockData = {
+            success: true,
+            data: {
+              user: {
+                id: 2,
+                name: 'New User',
+                email: 'newuser@example.com',
+                role: 'user'
+              }
+            },
+            message: 'Registration successful'
+          };
+        } else if (url.includes('patient')) {
           mockData.data = [
             { id: 1, name: 'John Doe', age: 30, condition: 'Healthy' },
             { id: 2, name: 'Jane Smith', age: 25, condition: 'Flu' }
@@ -129,12 +145,33 @@
       }
       
       // Return mock data for API requests
-      const mockResponse = {
+      let mockResponse = {
         success: true,
         data: [],
         message: 'Mock response - network error intercepted',
         intercepted: true
       };
+
+      // Special handling for login requests
+      if (url.includes('login')) {
+        // Let login requests go through to MockAuthService instead of using generic mock
+        throw new Error('Login request - pass to MockAuthService');
+      } else if (url.includes('register')) {
+      } else if (url.includes('register')) {
+        mockResponse = {
+          success: true,
+          data: {
+            user: {
+              id: 2,
+              name: 'New User',
+              email: 'newuser@example.com',
+              role: 'user'
+            }
+          },
+          message: 'Registration successful',
+          intercepted: true
+        };
+      }
       
       return new Response(JSON.stringify(mockResponse), {
         status: 200,

@@ -42,22 +42,11 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 flex items-center justify-center p-6">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/5 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-white/5 rounded-full blur-3xl"></div>
-      </div>
+    <div className="relative w-full max-w-xl">
 
-      <div className="relative w-full max-w-md">
-        {/* Back to landing */}
-        <Link to="/landing" className="inline-flex items-center text-white/80 hover:text-white mb-8 transition-colors">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to home
-        </Link>
 
         {/* Login card */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 shadow-2xl">
+        <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-12 border border-white/20 shadow-2xl">
           {/* Header */}
           <div className="text-center mb-8">
             <div className="flex items-center justify-center mb-4">
@@ -143,8 +132,8 @@ const Login = () => {
             </p>
           </div>
         </div>
+
       </div>
-    </div>
   );
 };
 

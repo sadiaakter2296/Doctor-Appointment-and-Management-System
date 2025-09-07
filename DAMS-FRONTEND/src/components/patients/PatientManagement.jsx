@@ -214,61 +214,9 @@ const PatientManagement = () => {
               />
             </div>
 
-            {/* Filter Button */}
-            <div className="relative">
-              <button 
-                onClick={handleToggleFilters}
-                className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-xl hover:shadow-lg hover:shadow-gray-200/50 hover:scale-105 transition-all duration-300 border border-gray-200/50"
-              >
-                <Filter className="w-4 h-4" />
-                Filters
-                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`} />
-              </button>
+           
 
-              {/* Filter Dropdown */}
-              {showFilters && (
-                <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-10 p-4">
-                  <h4 className="font-semibold text-gray-800 mb-3">Filter by Blood Type</h4>
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => handleBloodTypeFilter('')}
-                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                        selectedBloodType === '' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
-                      }`}
-                    >
-                      All Blood Types
-                    </button>
-                    {bloodTypes.map(bloodType => (
-                      <button
-                        key={bloodType}
-                        onClick={() => handleBloodTypeFilter(bloodType)}
-                        className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                          selectedBloodType === bloodType ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
-                        }`}
-                      >
-                        {bloodType}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Specialization Dropdown */}
-            <div className="relative">
-              <select 
-                value={specialization}
-                onChange={(e) => setSpecialization(e.target.value)}
-                className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option>All Specialization</option>
-                <option>Cardiology</option>
-                <option>Dermatology</option>
-                <option>Neurology</option>
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
-            </div>
-
+            
             {/* Patient Count */}
             <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 rounded-xl font-semibold">
               <User className="w-4 h-4" />

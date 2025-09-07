@@ -164,20 +164,7 @@ const NotificationCenter = () => {
                 <Search className="w-5 h-5" />
               </button>
               
-              {/* Priority Filter */}
-              <div className="relative">
-                <select 
-                  value={filterPriority}
-                  onChange={(e) => handlePriorityFilter(e.target.value)}
-                  className="appearance-none bg-white/80 border border-white/30 rounded-xl px-4 py-3 pr-10 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300 shadow-lg hover:shadow-xl text-gray-700"
-                >
-                  <option value="all">All Priority</option>
-                  <option value="High">High Priority</option>
-                  <option value="Medium">Medium Priority</option>
-                  <option value="Low">Low Priority</option>
-                </select>
-              </div>
-              
+             
               <button
                 disabled={isLoading}
                 onClick={markAllAsRead}
@@ -304,17 +291,6 @@ const NotificationCenter = () => {
                       <Activity className="w-5 h-5" />
                     </button>
 
-                    <button 
-                      onClick={() => handleStarNotification(notification.id)}
-                      className={`p-3 rounded-xl transition-all duration-300 hover:scale-110 ${
-                        notification.starred 
-                          ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200' 
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                      title={notification.starred ? 'Remove from favorites' : 'Add to favorites'}
-                    >
-                      <Star className={`w-5 h-5 ${notification.starred ? 'fill-current' : ''}`} />
-                    </button>
                     
                     <button 
                       onClick={() => handleMoreOptions(notification.id)}

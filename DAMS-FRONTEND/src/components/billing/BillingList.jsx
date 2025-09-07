@@ -268,9 +268,7 @@ const BillingList = () => {
                     </div>
                   )}
                 </div>
-                <div className={`p-4 rounded-2xl ${stat.color} group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
-                  <stat.icon className="h-8 w-8" />
-                </div>
+                {/* Icon beside card removed visually and in markup */}
               </div>
               <div className={`absolute inset-0 bg-gradient-to-r ${stat.gradient}/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl`}></div>
               
@@ -355,7 +353,7 @@ const BillingList = () => {
                         <p className="text-sm text-gray-600">{invoice.patientName}</p>
                       </div>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1 ${getStatusColor(invoice.status)}`}>
+                    <span className={`px-3 py-1 text-xs font-bold border flex items-center gap-1 ${getStatusColor(invoice.status)}`}>
                       {getStatusIcon(invoice.status)}
                       {invoice.status}
                     </span>
@@ -434,7 +432,7 @@ const BillingList = () => {
                       <p className="font-bold text-gray-900">৳{invoice.amount.toLocaleString()}</p>
                       <p className="text-sm text-gray-600">{invoice.date}</p>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1 ${getStatusColor(invoice.status)}`}>
+                    <span className={`px-3 py-1 text-xs font-bold border flex items-center gap-1 ${getStatusColor(invoice.status)}`}>
                       {getStatusIcon(invoice.status)}
                       {invoice.status}
                     </span>

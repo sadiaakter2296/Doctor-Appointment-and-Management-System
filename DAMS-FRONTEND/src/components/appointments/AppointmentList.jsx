@@ -199,7 +199,7 @@ const AppointmentList = () => {
                         <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
                           <User className="w-8 h-8 text-white" />
                         </div>
-                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
+                        {/* No activity indicator here */}
                       </div>
                       <div>
                         <h3 className="font-bold text-xl text-gray-900 group-hover:text-blue-700 transition-colors duration-300">{getPatientName(appointment.patientId)}</h3>
