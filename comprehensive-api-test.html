@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Doctor API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; }
+        .error { background: #fee; color: #c00; }
+        .success { background: #efe; color: #060; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Doctor API Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Backend Connection</h2>
+        <button onclick="testConnection()">Test Connection</button>
+        <div id="connectionResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Get All Doctors</h2>
+        <button onclick="getAllDoctors()">Get All Doctors</button>
+        <div id="doctorsResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Add Test Doctor</h2>
+        <button onclick="addTestDoctor()">Add Test Doctor</button>
+        <div id="addResult" class="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000/api';
+
+        async function testConnection() {
+            const resultDiv = document.getElementById('connectionResult');
+            resultDiv.innerHTML = 'Testing connection...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/doctors`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `<div class="success">✓ Connection successful! Status: ${response.status}</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">✗ Connection failed! Status: ${response.status}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">✗ Connection error: ${error.message}</div>`;
+            }
+        }
+
+        async function getAllDoctors() {
+            const resultDiv = document.getElementById('doctorsResult');
+            resultDiv.innerHTML = 'Loading doctors...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/doctors`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `
+                        <div class="success">✓ Doctors loaded successfully!</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    const errorText = await response.text();
+                    resultDiv.innerHTML = `<div class="error">✗ Failed to load doctors: ${response.status} - ${errorText}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">✗ Error loading doctors: ${error.message}</div>`;
+            }
+        }
+
+        async function addTestDoctor() {
+            const resultDiv = document.getElementById('addResult');
+            resultDiv.innerHTML = 'Adding test doctor...';
+            
+            const doctorData = {
+                name: 'Dr. Test Doctor ' + Date.now(),
+                email: 'test' + Date.now() + '@example.com',
+                phone: '+1234567890',
+                specialty: 'General Medicine',
+                education: 'MBBS',
+                experience: 5,
+                fee: 300,
+                location: 'Test Clinic',
+                status: 'Available',
+                about: 'Test doctor for API testing',
+                languages: ['English'],
+                working_hours: {
+                    monday: { start: '09:00', end: '17:00' },
+                    tuesday: { start: '09:00', end: '17:00' },
+                    wednesday: { start: '09:00', end: '17:00' },
+                    thursday: { start: '09:00', end: '17:00' },
+                    friday: { start: '09:00', end: '17:00' },
+                    saturday: { start: 'closed', end: 'closed' },
+                    sunday: { start: 'closed', end: 'closed' }
+                }
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/doctors`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(doctorData),
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `
+                        <div class="success">✓ Doctor added successfully!</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    const errorText = await response.text();
+                    resultDiv.innerHTML = `<div class="error">✗ Failed to add doctor: ${response.status} - ${errorText}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">✗ Error adding doctor: ${error.message}</div>`;
+            }
+        }
+
+        // Auto-test connection on load
+        window.onload = function() {
+            testConnection();
+        };
+    </script>
+</body>
+</html>

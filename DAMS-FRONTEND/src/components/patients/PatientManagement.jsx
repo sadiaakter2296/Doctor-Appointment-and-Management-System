@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search,
@@ -14,475 +14,481 @@ import {
   Droplet,
   Filter,
   Download,
-  UserPlus
+  UserPlus,
+  AlertTriangle,
+  Loader,
+  X
 } from 'lucide-react';
-
-const patientsData = [
-  {
-    id: 1,
-    name: 'Panna Akter',
-    phone: '0184 567 8900',
-    email: 'panna.akter@email.com',
-    bloodType: 'A+',
-    status: 'Active',
-    dateOfBirth: '1990-05-15',
-    gender: 'Female',
-    address: '123 Main Street, Dhaka, Bangladesh',
-    emergencyContact: '0199 123 4567'
-  },
-  {
-    id: 2,
-    name: 'Lamiya Khan',
-    phone: '0194 567 8901',
-    email: 'lamiya.khan@email.com',
-    bloodType: 'O-',
-    status: 'Active',
-    dateOfBirth: '1985-08-22',
-    gender: 'Female',
-    address: '456 Oak Avenue, Chittagong, Bangladesh',
-    emergencyContact: '0188 987 6543'
-  },
-  {
-    id: 3,
-    name: 'Sarah Khan',
-    phone: '0184 567 8902',
-    email: 'sarah.khan@email.com',
-    bloodType: 'B+',
-    status: 'Active',
-    dateOfBirth: '1992-12-10',
-    gender: 'Female',
-    address: '789 Pine Road, Sylhet, Bangladesh',
-    emergencyContact: '0177 456 7890'
-  },
-  {
-    id: 4,
-    name: 'Dulal',
-    phone: '0184 567 8903',
-    email: 'dulal@email.com',
-    bloodType: 'AB-',
-    status: 'Active',
-    dateOfBirth: '1988-03-18',
-    gender: 'Male',
-    address: '321 Elm Street, Rajshahi, Bangladesh',
-    emergencyContact: '0166 234 5678'
-  },
-  {
-    id: 5,
-    name: 'Jessica ',
-    phone: '0144 567 8904',
-    email: 'jessica@email.com',
-    bloodType: 'O+',
-    status: 'Active',
-    dateOfBirth: '1995-07-03',
-    gender: 'Female',
-    address: '654 Maple Lane, Khulna, Bangladesh',
-    emergencyContact: '0155 345 6789'
-  },
-  {
-    id: 6,
-    name: 'Robel',
-    phone: '0144 567 8905',
-    email: 'robel@email.com',
-    bloodType: 'A-',
-    status: 'Active',
-    dateOfBirth: '1987-11-28',
-    gender: 'Male',
-    address: '987 Cedar Court, Barisal, Bangladesh',
-    emergencyContact: '0144 678 9012'
-  }
-];
+import PatientForm from './PatientForm';
+import { patientService } from '../../api/patientService';
 
 const PatientManagement = () => {
   const navigate = useNavigate();
+  const [patients, setPatients] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [specialization, setSpecialization] = useState('All Specialization');
   const [status, setStatus] = useState('All Status');
   const [showFilters, setShowFilters] = useState(false);
+  const [showPatientForm, setShowPatientForm] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [selectedBloodType, setSelectedBloodType] = useState('');
   const [showPatientDetails, setShowPatientDetails] = useState(null);
 
-  // Filter patients based on search term, specialization, and blood type
-  const filteredPatients = patientsData.filter(patient => {
-    const matchesSearch = patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         patient.phone.includes(searchTerm) ||
-                         patient.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesBloodType = selectedBloodType === '' || patient.bloodType === selectedBloodType;
-    return matchesSearch && matchesBloodType;
+  // Load patients from backend
+  useEffect(() => {
+    loadPatients();
+  }, []);
+
+  const loadPatients = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await patientService.getAll();
+      setPatients(data);
+    } catch (error) {
+      console.error('Error loading patients:', error);
+      setError('Failed to load patients. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter patients based on search term and blood type
+  const filteredPatients = (patients || []).filter(patient => {
+    const matchesSearch = patient.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         patient.phone?.includes(searchTerm) ||
+                         patient.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesBloodType = selectedBloodType === '' || patient.blood_type === selectedBloodType;
+    const matchesStatus = status === 'All Status' || patient.status === status;
+    return matchesSearch && matchesBloodType && matchesStatus;
   });
 
   // Get unique blood types for filter
-  const bloodTypes = [...new Set(patientsData.map(patient => patient.bloodType))];
+  const bloodTypes = [...new Set((patients || []).map(patient => patient.blood_type).filter(Boolean))];
 
-  // Handler functions for all buttons
+  // Handler functions
   const handleAddPatient = () => {
-    navigate('/patients/add');
+    setSelectedPatient(null);
+    setShowPatientForm(true);
   };
 
-  const handleExportData = () => {
-    // Export patient data to CSV
-    const csvContent = patientsData.map(patient => 
-      `${patient.name},${patient.phone},${patient.email},${patient.bloodType},${patient.status}`
-    ).join('\n');
-    
-    const header = 'Name,Phone,Email,Blood Type,Status\n';
-    const blob = new Blob([header + csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'patients_data.csv';
-    a.click();
-    window.URL.revokeObjectURL(url);
+  const handleEditPatient = (patient) => {
+    setSelectedPatient(patient);
+    setShowPatientForm(true);
   };
 
-  const handleToggleFilters = () => {
-    setShowFilters(!showFilters);
+  const handleDeletePatient = async (patientId) => {
+    try {
+      await patientService.delete(patientId);
+      await loadPatients(); // Reload patients
+      setShowDeleteConfirm(null);
+    } catch (error) {
+      console.error('Error deleting patient:', error);
+      setError('Failed to delete patient. Please try again.');
+    }
   };
 
-  const handleEditPatient = (patientId) => {
-    navigate(`/patients/edit/${patientId}`);
+  const handlePatientAdded = async () => {
+    await loadPatients(); // Reload patients
+    setShowPatientForm(false);
   };
 
-  const handleDeletePatient = (patientId) => {
-    setShowDeleteConfirm(patientId);
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString();
   };
 
-  const confirmDeletePatient = (patientId) => {
-    // Here you would typically make an API call to delete the patient
-    console.log(`Deleting patient with ID: ${patientId}`);
-    setShowDeleteConfirm(null);
-    // You could also update the patients list or refresh the data
+  const getAge = (dateOfBirth) => {
+    if (!dateOfBirth) return '-';
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
   };
 
-  const handleViewDetails = (patientId) => {
-    const patient = patientsData.find(p => p.id === patientId);
-    setShowPatientDetails(patient);
-  };
-
-  const handleViewAppointments = (patientId) => {
-    navigate(`/appointments?patientId=${patientId}`);
-  };
-
-  const handleBloodTypeFilter = (bloodType) => {
-    setSelectedBloodType(bloodType);
-    setShowFilters(false);
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex items-center gap-2 text-gray-600">
+          <Loader className="h-6 w-6 animate-spin" />
+          Loading patients...
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50/50 via-white to-blue-50/30 p-6 space-y-8">
+    <div className="bg-white rounded-lg shadow-sm">
       {/* Header */}
-      <div className="bg-gradient-to-r from-white/90 to-blue-50/90 backdrop-blur-xl rounded-2xl p-8 shadow-xl border border-blue-200/30">
-        <div className="flex items-center justify-between">
+      <div className="border-b border-gray-200 p-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <User className="h-6 w-6 text-blue-500" />
               Patient Management
             </h1>
-            <p className="text-gray-600 mt-2 text-lg">Manage patient profiles and comprehensive health information</p>
+            <p className="text-gray-600 mt-1">Manage patient records and information</p>
           </div>
-          <div className="flex gap-3">
-            <button 
-              onClick={handleAddPatient}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:shadow-lg hover:shadow-green-200/50 hover:scale-105 transition-all duration-300"
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              <UserPlus className="w-4 h-4" />
+              <Filter className="h-4 w-4" />
+              Filters
+              <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+            </button>
+            <button
+              onClick={handleAddPatient}
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <UserPlus className="h-4 w-4" />
               Add Patient
             </button>
-            <button 
-              onClick={handleExportData}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:shadow-lg hover:shadow-blue-200/50 hover:scale-105 transition-all duration-300"
-            >
-              <Download className="w-4 h-4" />
-              Export
-            </button>
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="mt-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+            <input
+              type="text"
+              placeholder="Search patients by name, phone, or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        </div>
+
+        {/* Filters */}
+        {showFilters && (
+          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Blood Type</label>
+                <select
+                  value={selectedBloodType}
+                  onChange={(e) => setSelectedBloodType(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">All Blood Types</option>
+                  {bloodTypes.map(type => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                >
+                  <option>All Status</option>
+                  <option>Active</option>
+                  <option>Inactive</option>
+                </select>
+              </div>
+              <div className="flex items-end">
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setSelectedBloodType('');
+                    setStatus('All Status');
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                >
+                  Clear Filters
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Statistics */}
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <div className="flex items-center gap-2">
+              <User className="h-5 w-5 text-blue-600" />
+              <span className="text-sm font-medium text-blue-600">Total Patients</span>
+            </div>
+            <p className="text-2xl font-bold text-blue-700 mt-1">{(patients || []).length}</p>
+          </div>
+          <div className="bg-green-50 p-4 rounded-lg">
+            <div className="flex items-center gap-2">
+              <User className="h-5 w-5 text-green-600" />
+              <span className="text-sm font-medium text-green-600">Active</span>
+            </div>
+            <p className="text-2xl font-bold text-green-700 mt-1">
+              {(patients || []).filter(p => p.status === 'Active').length}
+            </p>
+          </div>
+          <div className="bg-red-50 p-4 rounded-lg">
+            <div className="flex items-center gap-2">
+              <User className="h-5 w-5 text-red-600" />
+              <span className="text-sm font-medium text-red-600">Inactive</span>
+            </div>
+            <p className="text-2xl font-bold text-red-700 mt-1">
+              {(patients || []).filter(p => p.status === 'Inactive').length}
+            </p>
+          </div>
+          <div className="bg-purple-50 p-4 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Search className="h-5 w-5 text-purple-600" />
+              <span className="text-sm font-medium text-purple-600">Filtered</span>
+            </div>
+            <p className="text-2xl font-bold text-purple-700 mt-1">{filteredPatients.length}</p>
           </div>
         </div>
       </div>
 
-      {/* Filters Row */}
-      <div className="bg-gradient-to-r from-white/90 to-blue-50/90 backdrop-blur-xl rounded-2xl border border-blue-200/30 shadow-xl p-6">
-        <div className="flex items-center justify-between gap-6">
-          <div className="flex items-center gap-6 flex-1">
-            {/* Search Input */}
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Search patients by name, phone, or email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border-2 border-blue-200/50 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-400 bg-gradient-to-r from-white/90 to-blue-50/90 backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:shadow-blue-100/30"
-              />
-            </div>
-
-           
-
-            
-            {/* Patient Count */}
-            <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 rounded-xl font-semibold">
-              <User className="w-4 h-4" />
-              <span className="text-sm">{filteredPatients.length} {filteredPatients.length === 1 ? 'Patient' : 'Patients'} {searchTerm || selectedBloodType ? 'Found' : 'Total'}</span>
-            </div>
-          </div>
+      {/* Error Message */}
+      {error && (
+        <div className="mx-6 mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5" />
+          {error}
+          <button 
+            onClick={() => setError(null)}
+            className="ml-auto text-red-700 hover:text-red-900"
+          >
+            ×
+          </button>
         </div>
-      </div>
+      )}
 
-      {/* Patient Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredPatients.map((patient) => (
-          <div key={patient.id} className="bg-gradient-to-br from-white/90 to-blue-50/90 backdrop-blur-xl rounded-2xl border border-blue-200/30 p-6 relative hover:shadow-2xl hover:shadow-blue-200/30 hover:scale-105 transition-all duration-300 cursor-pointer group">
-            {/* Action Buttons */}
-            <div className="absolute top-4 right-4 flex gap-2 opacity-100 transition-opacity duration-300">
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleEditPatient(patient.id);
-                }}
-                className="p-2 bg-gradient-to-br from-green-500 to-green-600 text-white hover:shadow-lg hover:shadow-green-200/50 hover:scale-110 transition-all duration-300 rounded-xl"
-                title="Edit Patient"
-              >
-                <Edit className="w-4 h-4" strokeWidth="2.5" />
-              </button>
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeletePatient(patient.id);
-                }}
-                className="p-2 bg-gradient-to-br from-red-500 to-red-600 text-white hover:shadow-lg hover:shadow-red-200/50 hover:scale-110 transition-all duration-300 rounded-xl"
-                title="Delete Patient"
-              >
-                <Trash2 className="w-4 h-4" strokeWidth="2.5" />
-              </button>
-            </div>
-
-            {/* Patient Info */}
-            <div className="mb-6">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-lg">
-                  <User className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-700 transition-colors duration-300">{patient.name}</h3>
-              </div>
-            </div>
-
-            {/* Contact Info */}
-            <div className="space-y-3 mb-6">
-              <div className="flex items-center gap-3 text-gray-600 hover:text-blue-600 transition-colors duration-300">
-                <div className="p-1.5 bg-blue-100 rounded-lg">
-                  <Phone className="w-4 h-4 text-blue-600" />
-                </div>
-                <span className="font-medium">{patient.phone}</span>
-              </div>
-              <div className="flex items-center gap-3 text-gray-600 hover:text-blue-600 transition-colors duration-300">
-                <div className="p-1.5 bg-blue-100 rounded-lg">
-                  <Mail className="w-4 h-4 text-blue-600" />
-                </div>
-                <span className="font-medium text-sm">{patient.email}</span>
-              </div>
-              <div className="flex items-center gap-3 text-gray-600">
-                <div className="p-1.5 bg-red-100 rounded-lg">
-                  <Droplet className="w-4 h-4 text-red-600" />
-                </div>
-                <span className="font-medium">Blood Type: <span className="text-red-600 font-bold">{patient.bloodType}</span></span>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="space-y-3">
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleViewDetails(patient.id);
-                }}
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 px-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all duration-300 hover:shadow-lg hover:shadow-blue-200/50 hover:scale-105"
-              >
-                <Eye className="w-4 h-4" />
-                View Details
-              </button>
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleViewAppointments(patient.id);
-                }}
-                className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-3 px-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all duration-300 hover:shadow-lg hover:shadow-green-200/50 hover:scale-105"
-              >
-                <Calendar className="w-4 h-4" />
-                Appointments
-              </button>
-            </div>
-          </div>
-        ))}
-
-        {/* No Results Message */}
-        {filteredPatients.length === 0 && (
-          <div className="col-span-full flex flex-col items-center justify-center py-12">
-            <div className="text-gray-400 text-6xl mb-4">
-              <User className="w-16 h-16" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-600 mb-2">No Patients Found</h3>
-            <p className="text-gray-500 text-center mb-4">
-              {searchTerm || selectedBloodType 
-                ? 'Try adjusting your search criteria or filters'
-                : 'No patients are currently registered in the system'
+      {/* Patients Table */}
+      <div className="p-6">
+        {filteredPatients.length === 0 ? (
+          <div className="text-center py-12">
+            <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No patients found</h3>
+            <p className="text-gray-600 mb-4">
+              {(patients || []).length === 0 
+                ? "Get started by adding your first patient."
+                : "Try adjusting your search or filter criteria."
               }
             </p>
-            {(searchTerm || selectedBloodType) && (
+            {(patients || []).length === 0 && (
               <button
-                onClick={() => {
-                  setSearchTerm('');
-                  setSelectedBloodType('');
-                }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                onClick={handleAddPatient}
+                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
               >
-                Clear Filters
+                <UserPlus className="h-4 w-4" />
+                Add First Patient
               </button>
             )}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Patient</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Contact</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Age/Gender</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Blood Type</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPatients.map((patient) => (
+                  <tr key={patient.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                          <User className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">{patient.name}</p>
+                          <p className="text-sm text-gray-600">{patient.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Phone className="h-4 w-4 text-gray-400" />
+                          {patient.phone}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Mail className="h-4 w-4 text-gray-400" />
+                          {patient.email}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium">
+                          {getAge(patient.date_of_birth)} years
+                        </div>
+                        <div className="text-sm text-gray-600">{patient.gender}</div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-2">
+                        <Droplet className="h-4 w-4 text-red-500" />
+                        <span className="font-medium text-red-600">
+                          {patient.blood_type || '-'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        patient.status === 'Active' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {patient.status}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setShowPatientDetails(patient)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="View Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEditPatient(patient)}
+                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          title="Edit Patient"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => setShowDeleteConfirm(patient.id)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete Patient"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
 
-      {/* Patient Details Modal */}
-      {showPatientDetails && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold text-gray-900">Patient Details</h3>
-              <button
-                onClick={() => setShowPatientDetails(null)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+      {/* Patient Form Modal */}
+      <PatientForm
+        isOpen={showPatientForm}
+        onClose={() => {
+          setShowPatientForm(false);
+          setSelectedPatient(null);
+        }}
+        onPatientAdded={handlePatientAdded}
+        patient={selectedPatient}
+      />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">Delete Patient</h3>
+                <p className="text-sm text-gray-600">This action cannot be undone.</p>
+              </div>
             </div>
-            
-            <div className="space-y-6">
-              {/* Patient Basic Info */}
-              <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="p-3 bg-blue-600 rounded-xl">
-                    <User className="w-8 h-8 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="text-xl font-bold text-gray-900">{showPatientDetails.name}</h4>
-                    <p className="text-gray-600">Patient ID: #{showPatientDetails.id}</p>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-white rounded-lg p-4">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Phone className="w-5 h-5 text-blue-600" />
-                      <span className="font-semibold text-gray-700">Phone Number</span>
-                    </div>
-                    <p className="text-gray-900 font-medium">{showPatientDetails.phone}</p>
-                  </div>
-                  
-                  <div className="bg-white rounded-lg p-4">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Mail className="w-5 h-5 text-blue-600" />
-                      <span className="font-semibold text-gray-700">Email Address</span>
-                    </div>
-                    <p className="text-gray-900 font-medium">{showPatientDetails.email}</p>
-                  </div>
-                  
-                  <div className="bg-white rounded-lg p-4">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Droplet className="w-5 h-5 text-red-600" />
-                      <span className="font-semibold text-gray-700">Blood Type</span>
-                    </div>
-                    <p className="text-red-600 font-bold text-lg">{showPatientDetails.bloodType}</p>
-                  </div>
-                  
-                  <div className="bg-white rounded-lg p-4">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className={`w-3 h-3 rounded-full ${showPatientDetails.status === 'Active' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                      <span className="font-semibold text-gray-700">Status</span>
-                    </div>
-                    <p className={`font-medium ${showPatientDetails.status === 'Active' ? 'text-green-600' : 'text-red-600'}`}>
-                      {showPatientDetails.status}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Additional Information */}
-              <div className="bg-gray-50 rounded-xl p-6">
-                <h5 className="text-lg font-bold text-gray-900 mb-4">Additional Information</h5>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <span className="font-semibold text-gray-700">Date of Birth:</span>
-                    <p className="text-gray-900">{showPatientDetails.dateOfBirth || 'Not specified'}</p>
-                  </div>
-                  <div>
-                    <span className="font-semibold text-gray-700">Gender:</span>
-                    <p className="text-gray-900">{showPatientDetails.gender || 'Not specified'}</p>
-                  </div>
-                  <div className="md:col-span-2">
-                    <span className="font-semibold text-gray-700">Address:</span>
-                    <p className="text-gray-900">{showPatientDetails.address || 'Not specified'}</p>
-                  </div>
-                  <div>
-                    <span className="font-semibold text-gray-700">Emergency Contact:</span>
-                    <p className="text-gray-900">{showPatientDetails.emergencyContact || 'Not specified'}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowPatientDetails(null);
-                    handleEditPatient(showPatientDetails.id);
-                  }}
-                  className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-green-200/50 transition-all duration-300"
-                >
-                  <Edit className="w-4 h-4" />
-                  Edit Patient
-                </button>
-                <button
-                  onClick={() => {
-                    setShowPatientDetails(null);
-                    handleViewAppointments(showPatientDetails.id);
-                  }}
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-blue-200/50 transition-all duration-300"
-                >
-                  <Calendar className="w-4 h-4" />
-                  View Appointments
-                </button>
-              </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeletePatient(showDeleteConfirm)}
+                className="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Trash2 className="w-6 h-6 text-red-600" />
+      {/* Patient Details Modal */}
+      {showPatientDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-gray-900">Patient Details</h2>
+              <button
+                onClick={() => setShowPatientDetails(null)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Name</label>
+                  <p className="mt-1 text-sm text-gray-900">{showPatientDetails.name}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Email</label>
+                  <p className="mt-1 text-sm text-gray-900">{showPatientDetails.email}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Phone</label>
+                  <p className="mt-1 text-sm text-gray-900">{showPatientDetails.phone}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
+                  <p className="mt-1 text-sm text-gray-900">{formatDate(showPatientDetails.date_of_birth)}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Gender</label>
+                  <p className="mt-1 text-sm text-gray-900">{showPatientDetails.gender}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Blood Type</label>
+                  <p className="mt-1 text-sm text-gray-900">{showPatientDetails.blood_type || '-'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Emergency Contact</label>
+                  <p className="mt-1 text-sm text-gray-900">{showPatientDetails.emergency_contact}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Status</label>
+                  <p className="mt-1 text-sm text-gray-900">{showPatientDetails.status}</p>
+                </div>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Patient</h3>
-              <p className="text-gray-600 mb-6">
-                Are you sure you want to delete this patient? This action cannot be undone and will remove all associated medical records.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowDeleteConfirm(null)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => confirmDeletePatient(showDeleteConfirm)}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors"
-                >
-                  Delete
-                </button>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Address</label>
+                <p className="mt-1 text-sm text-gray-900">{showPatientDetails.address}</p>
               </div>
+              {showPatientDetails.medical_history && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Medical History</label>
+                  <p className="mt-1 text-sm text-gray-900">{showPatientDetails.medical_history}</p>
+                </div>
+              )}
+              {showPatientDetails.allergies && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Allergies</label>
+                  <p className="mt-1 text-sm text-gray-900">{showPatientDetails.allergies}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

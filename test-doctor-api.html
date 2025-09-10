@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Doctor API</title>
+</head>
+<body>
+    <h1>Doctor Management API Test</h1>
+    
+    <div>
+        <h2>Add Test Doctor</h2>
+        <button onclick="addTestDoctor()">Add Test Doctor</button>
+        <div id="addResult"></div>
+    </div>
+    
+    <div>
+        <h2>Get All Doctors</h2>
+        <button onclick="getAllDoctors()">Get All Doctors</button>
+        <div id="doctorsResult"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+
+        async function addTestDoctor() {
+            const doctorData = {
+                name: 'Dr. Test Doctor',
+                email: 'test@example.com',
+                phone: '+1234567890',
+                specialty: 'Cardiology',
+                education: 'MBBS, MD',
+                experience: 10,
+                fee: 500,
+                location: 'Test Hospital',
+                status: 'Available',
+                about: 'This is a test doctor',
+                languages: ['English', 'Bengali'],
+                working_hours: {
+                    monday: { start: '09:00', end: '17:00' },
+                    tuesday: { start: '09:00', end: '17:00' }
+                }
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/doctors`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(doctorData)
+                });
+                
+                const result = await response.json();
+                document.getElementById('addResult').innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('addResult').innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+
+        async function getAllDoctors() {
+            try {
+                const response = await fetch(`${API_BASE}/doctors`, {
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                document.getElementById('doctorsResult').innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('doctorsResult').innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

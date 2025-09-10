@@ -23,8 +23,28 @@ const Register = ({ onClose, onSwitchToLogin }) => {
     setError('');
     setLoading(true);
     
-    if (!email || !password || !name || !passwordConfirmation) {
-      setError('Please fill all fields.');
+    console.log('Form submission started with:', { name, email, password: '***', passwordConfirmation: '***' });
+    
+    if (!name) {
+      setError('Please enter your full name.');
+      setLoading(false);
+      return;
+    }
+    
+    if (!email) {
+      setError('Please enter your email address.');
+      setLoading(false);
+      return;
+    }
+    
+    if (!password) {
+      setError('Please enter a password.');
+      setLoading(false);
+      return;
+    }
+    
+    if (!passwordConfirmation) {
+      setError('Please confirm your password.');
       setLoading(false);
       return;
     }
@@ -42,8 +62,9 @@ const Register = ({ onClose, onSwitchToLogin }) => {
     }
 
     try {
-      await register({ name, email, password });
-      console.log('Registration successful:', { name, email });
+      console.log('Calling register function...');
+      const result = await register({ name, email, password });
+      console.log('Registration result:', result);
       
       // Show success message before redirecting
       if (isStandalone) {
@@ -59,6 +80,7 @@ const Register = ({ onClose, onSwitchToLogin }) => {
         onClose();
       }
     } catch (err) {
+      console.error('Registration error:', err);
       setError(err.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
@@ -284,6 +306,30 @@ const Register = ({ onClose, onSwitchToLogin }) => {
                 tabIndex={-1}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-1 text-blue-700">Confirm Password</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400">
+                <Lock className="w-4 h-4" />
+              </span>
+              <input
+                type={showPasswordConfirmation ? 'text' : 'password'}
+                className="w-full pl-10 pr-10 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-blue-50"
+                value={passwordConfirmation}
+                onChange={e => setPasswordConfirmation(e.target.value)}
+                placeholder="Confirm your password"
+                required
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-400 hover:text-blue-600 focus:outline-none"
+                onClick={() => setShowPasswordConfirmation(v => !v)}
+                tabIndex={-1}
+              >
+                {showPasswordConfirmation ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>

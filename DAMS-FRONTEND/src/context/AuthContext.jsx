@@ -102,12 +102,29 @@ export const AuthProvider = ({ children }) => {
       let response;
       try {
         console.log('🔄 Attempting backend registration...');
+        console.log('📤 Sending data:', { name, email, password: '***' });
         response = await authAPI.register({ name, email, password });
         console.log('✅ Backend registration response:', response);
+        
+        // If we get here, backend worked, so don't fall back to mock
+        if (response.status === 'success' || response.success === true) {
+          return { success: true, message: response.message || 'Registration successful' };
+        } else {
+          throw new Error(response.message || 'Registration failed');
+        }
       } catch (backendError) {
-        console.log('❌ Backend registration failed, using mock service:', backendError.message);
-        response = await MockAuthService.register({ name, email, password });
-        console.log('✅ Mock service registration response:', response);
+        console.log('❌ Backend registration failed:', backendError.message);
+        console.log('🔍 Full error details:', backendError);
+        
+        // Only use mock service if it's a network error, not a validation error
+        if (backendError.message.includes('Network error') || backendError.message.includes('fetch')) {
+          console.log('🔄 Using mock service due to network error...');
+          response = await MockAuthService.register({ name, email, password });
+          console.log('✅ Mock service registration response:', response);
+        } else {
+          // Re-throw backend validation errors
+          throw backendError;
+        }
       }
       
       // Handle both success formats (status: 'success' and success: true)

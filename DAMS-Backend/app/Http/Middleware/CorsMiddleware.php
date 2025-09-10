@@ -16,6 +16,15 @@ class CorsMiddleware
      */
     public function handle(Request $request, Closure $next)
     {
+        // Handle preflight OPTIONS requests
+        if ($request->getMethod() === 'OPTIONS') {
+            return response('', 200)
+                ->header('Access-Control-Allow-Origin', '*')
+                ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+                ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+                ->header('Access-Control-Allow-Credentials', 'true');
+        }
+
         $response = $next($request);
 
         $response->headers->set('Access-Control-Allow-Origin', '*');

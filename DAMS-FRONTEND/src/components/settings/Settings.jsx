@@ -302,7 +302,7 @@ const Settings = () => {
                 Phone Number *
               </label>
               <div className="relative">
-                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-red-700 w-5 h-5   " />
+                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600 w-5 h-5 z-10" />
                 <input
                   type="text"
                   value={settings.phoneNumber}
@@ -319,7 +319,7 @@ const Settings = () => {
                 Email Address *
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-900 w-5 h-5 group-focus-within:text-blue-500 transition-colors duration-300" />
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-600 w-5 h-5 z-10" />
                 <input
                   type="email"
                   value={settings.emailAddress}
@@ -336,7 +336,7 @@ const Settings = () => {
                 Website
               </label>
               <div className="relative">
-                <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-black-900 w-5 h-5 " />
+                <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-600 w-5 h-5 z-10" />
                 <input
                   type="url"
                   value={settings.website}
@@ -354,7 +354,7 @@ const Settings = () => {
               Clinic Address *
             </label>
             <div className="relative">
-              <MapPin className="absolute left-3 top-3 text-gray-400 w-5 h-5 group-focus-within:text-blue-500 transition-colors duration-300" />
+              <MapPin className="absolute left-3 top-3 text-orange-600 w-5 h-5 z-10" />
               <textarea
                 value={settings.address}
                 onChange={(e) => handleInputChange('address', e.target.value)}
@@ -383,7 +383,7 @@ const Settings = () => {
                 Timezone
               </label>
               <div className="relative">
-                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-green-500 transition-colors duration-300" />
+                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-indigo-600 w-5 h-5 z-10" />
                 <select
                   value={settings.timezone}
                   onChange={(e) => handleInputChange('timezone', e.target.value)}
@@ -402,7 +402,7 @@ const Settings = () => {
                 Language
               </label>
               <div className="relative">
-                <Type className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-green-500 transition-colors duration-300" />
+                <Type className="absolute left-3 top-1/2 transform -translate-y-1/2 text-teal-600 w-5 h-5 z-10" />
                 <select
                   value={settings.language}
                   onChange={(e) => handleInputChange('language', e.target.value)}
@@ -421,7 +421,7 @@ const Settings = () => {
                 Currency
               </label>
               <div className="relative">
-                <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-green-500 transition-colors duration-300" />
+                <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-emerald-600 w-5 h-5 z-10" />
                 <select
                   value={settings.currency}
                   onChange={(e) => handleInputChange('currency', e.target.value)}

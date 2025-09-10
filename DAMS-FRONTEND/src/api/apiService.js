@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3001/api';
+const API_BASE_URL = 'http://localhost:8000/api';
 
 class ApiService {
   constructor() {
@@ -113,4 +113,6 @@ export const authAPI = {
   }
 };
 
-export default ApiService;
+// Create and export an instance of ApiService
+const apiServiceInstance = new ApiService();
+export default apiServiceInstance;

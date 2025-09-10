@@ -676,7 +676,7 @@ Description: ${invoice.description}
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-blue-500 transition-colors duration-300" />
                 <input
                   type="text"
-                  placeholder="Search invoices... (Ctrl+F)"
+                  placeholder="Search invoices... "
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-12 pr-4 py-3 border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300 shadow-lg hover:shadow-xl text-gray-700 bg-white/80 backdrop-blur-xl group-focus-within:bg-white/90"

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import AppointmentModal from './AppointmentModal';
+import { useNavigate } from 'react-router-dom';
 import {
   Search,
   Filter,
@@ -25,9 +25,9 @@ import {
   X
 } from 'lucide-react';
 import { doctorService } from '../../api/doctorService';
-import DoctorForm from './DoctorForm';
 
 const DoctorPage = () => {
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -37,10 +37,6 @@ const DoctorPage = () => {
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
-  const [selectedDoctor, setSelectedDoctor] = useState(null);
-  const [editingDoctor, setEditingDoctor] = useState(null);
-  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     loadDoctors();
@@ -49,21 +45,11 @@ const DoctorPage = () => {
   const loadDoctors = async () => {
     try {
       setLoading(true);
-      console.log('Loading doctors from API...');
       const response = await doctorService.getAllDoctors();
-      console.log('Doctors loaded successfully:', response);
-      
-      // Handle different response structures
-      const doctorsData = response?.data || response || [];
-      console.log('Setting doctors data:', doctorsData);
-      
-      setDoctors(Array.isArray(doctorsData) ? doctorsData : []);
-      setError('');
+      setDoctors(response.data);
     } catch (err) {
+      setError('Failed to load doctors');
       console.error('Error loading doctors:', err);
-      setError('Failed to load doctors: ' + (err.message || 'Unknown error'));
-      // Set empty array on error to show empty state instead of breaking
-      setDoctors([]);
     } finally {
       setLoading(false);
     }
@@ -80,55 +66,6 @@ const DoctorPage = () => {
     }
   };
 
-  const handleAddDoctor = async (doctorData) => {
-    try {
-      console.log('Adding doctor with data:', doctorData);
-      setError(''); // Clear any previous errors
-      
-      const response = await doctorService.createDoctor(doctorData);
-      console.log('Doctor added successfully:', response);
-      
-      // Reload doctors list
-      await loadDoctors();
-      setShowForm(false);
-      
-      // Show success message
-      alert('Doctor added successfully!');
-    } catch (err) {
-      console.error('Error adding doctor:', err);
-      console.error('Error response:', err.response);
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to add doctor';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    }
-  };
-
-  const handleBookAppointment = (doctor) => {
-    setSelectedDoctor(doctor);
-    setShowAppointmentModal(true);
-  };
-
-  const handleEdit = async (doctorData) => {
-    try {
-      await doctorService.updateDoctor(editingDoctor.id, doctorData);
-      await loadDoctors();
-      setEditingDoctor(null);
-      setShowForm(false);
-    } catch (err) {
-      throw new Error(err.response?.data?.message || 'Failed to update doctor');
-    }
-  };
-
-  const openEditForm = (doctor) => {
-    setEditingDoctor(doctor);
-    setShowForm(true);
-  };
-
-  const closeForm = () => {
-    setShowForm(false);
-    setEditingDoctor(null);
-  };
-
   // Filter doctors based on search term and specialty
   const filteredDoctors = doctors.filter(doctor => {
     const matchesSearch = doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -141,8 +78,8 @@ const DoctorPage = () => {
   const specialties = [...new Set(doctors.map(doctor => doctor.specialty))];
 
   // Handler functions for all buttons
-  const handleAddDoctorClick = () => {
-    setShowForm(true);
+  const handleAddDoctor = () => {
+    navigate('/doctors/add');
   };
 
   const handleExportData = () => {
@@ -162,16 +99,16 @@ const DoctorPage = () => {
     setShowDoctorDetails(doctor);
   };
 
-  const handleEditDoctorClick = (doctor) => {
-    openEditForm(doctor);
+  const handleEditDoctor = (doctorId) => {
+    navigate(`/doctors/edit/${doctorId}`);
   };
 
   const handleScheduleAppointment = (doctorId) => {
-    alert(`Scheduling appointment with doctor ID: ${doctorId}`);
+    navigate(`/appointments/new?doctorId=${doctorId}`);
   };
 
   const handleMessageDoctor = (doctorId) => {
-    alert(`Messaging doctor ID: ${doctorId}`);
+    navigate(`/messages/new?doctorId=${doctorId}`);
   };
 
   if (loading) {
@@ -207,7 +144,7 @@ const DoctorPage = () => {
               Export
             </button>
             <button
-              onClick={handleAddDoctorClick}
+              onClick={handleAddDoctor}
               className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2 rounded-xl hover:shadow-lg hover:shadow-blue-200/50 transition-all duration-300"
             >
               <Plus className="w-4 h-4" />
@@ -326,44 +263,22 @@ const DoctorPage = () => {
         </div>
       )}
 
-      {/* Debug Info - Remove in production */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-yellow-800 text-sm">
-            <strong>Debug:</strong> Total doctors: {doctors.length}, Filtered: {filteredDoctors.length}, Loading: {loading.toString()}
-            {doctors.length > 0 && (
-              <span> | First doctor: {doctors[0]?.name || 'N/A'}</span>
-            )}
-          </p>
-        </div>
-      )}
-
-      {/* Loading State */}
-      {loading && (
-        <div className="bg-white rounded-2xl p-12 shadow-sm border border-gray-100 text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <h3 className="text-xl font-semibold text-gray-600 mb-2">Loading doctors...</h3>
-          <p className="text-gray-500">Please wait while we fetch the doctors.</p>
-        </div>
-      )}
-
       {/* Doctors Grid/List */}
-      {!loading && (
-        filteredDoctors.length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 shadow-sm border border-gray-100 text-center">
-            <User className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-600 mb-2">No doctors found</h3>
-            <p className="text-gray-500 mb-6">
-              {searchTerm || selectedSpecialty ? 'Try adjusting your search filters' : 'Get started by adding your first doctor'}
-            </p>
-            <button
-              onClick={handleAddDoctorClick}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl hover:shadow-lg hover:shadow-blue-200/50 transition-all duration-300"
-            >
-              Add First Doctor
-            </button>
-          </div>
-        ) : (
+      {filteredDoctors.length === 0 ? (
+        <div className="bg-white rounded-2xl p-12 shadow-sm border border-gray-100 text-center">
+          <User className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-600 mb-2">No doctors found</h3>
+          <p className="text-gray-500 mb-6">
+            {searchTerm || selectedSpecialty ? 'Try adjusting your search filters' : 'Get started by adding your first doctor'}
+          </p>
+          <button
+            onClick={handleAddDoctor}
+            className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl hover:shadow-lg hover:shadow-blue-200/50 transition-all duration-300"
+          >
+            Add First Doctor
+          </button>
+        </div>
+      ) : (
         <div className={viewMode === 'grid' 
           ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
           : "space-y-4"
@@ -424,18 +339,11 @@ const DoctorPage = () => {
                     View
                   </button>
                   <button
-                    onClick={() => handleEditDoctorClick(doctor)}
+                    onClick={() => handleEditDoctor(doctor.id)}
                     className="flex-1 bg-blue-100 text-blue-700 py-2 px-3 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium flex items-center justify-center gap-1"
                   >
                     <Edit className="w-3 h-3" />
                     Edit
-                  </button>
-                  <button
-                    onClick={() => handleBookAppointment(doctor)}
-                    className="flex-1 bg-green-100 text-green-700 py-2 px-3 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium flex items-center justify-center gap-1"
-                  >
-                    <MessageCircle className="w-3 h-3" />
-                    Book
                   </button>
                   <button
                     onClick={() => setShowDeleteConfirm(doctor.id)}
@@ -480,17 +388,10 @@ const DoctorPage = () => {
                         <Eye className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleEditDoctorClick(doctor)}
+                        onClick={() => handleEditDoctor(doctor.id)}
                         className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
                       >
                         <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleBookAppointment(doctor)}
-                        className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
-                        title="Book Appointment"
-                      >
-                        <MessageCircle className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => setShowDeleteConfirm(doctor.id)}
@@ -505,7 +406,6 @@ const DoctorPage = () => {
             )
           ))}
         </div>
-        )
       )}
 
       {/* Doctor Details Modal */}
@@ -607,7 +507,7 @@ const DoctorPage = () => {
                 <button
                   onClick={() => {
                     setShowDoctorDetails(null);
-                    handleEditDoctorClick(showDoctorDetails);
+                    handleEditDoctor(showDoctorDetails.id);
                   }}
                   className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-blue-200/50 transition-all duration-300"
                 >
@@ -644,28 +544,6 @@ const DoctorPage = () => {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Doctor Form Modal */}
-      {showForm && (
-        <DoctorForm
-          doctor={editingDoctor}
-          onSave={editingDoctor ? handleEdit : handleAddDoctor}
-          onCancel={closeForm}
-          isEdit={!!editingDoctor}
-        />
-      )}
-
-      {/* Appointment Modal */}
-      {showAppointmentModal && (
-        <AppointmentModal
-          isOpen={showAppointmentModal}
-          onClose={() => {
-            setShowAppointmentModal(false);
-            setSelectedDoctor(null);
-          }}
-          doctor={selectedDoctor}
-        />
       )}
     </div>
   );

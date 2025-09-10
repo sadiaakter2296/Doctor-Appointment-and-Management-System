@@ -2,10 +2,9 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\AppointmentController;
-use App\Http\Controllers\PatientController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -18,10 +17,6 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanc
 
 // Doctor routes
 Route::apiResource('doctors', DoctorController::class);
-
-// Patient routes
-Route::apiResource('patients', PatientController::class);
-Route::get('patients/search', [PatientController::class, 'search']);
 
 // Appointment routes
 Route::apiResource('appointments', AppointmentController::class);
