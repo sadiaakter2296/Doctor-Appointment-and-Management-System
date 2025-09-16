@@ -12,8 +12,7 @@ import {
   Mail,
   Award,
   Heart,
-  Eye,
-  Plus
+  Eye
 } from 'lucide-react';
 
 const DoctorDashboard = () => {
@@ -96,10 +95,6 @@ const DoctorDashboard = () => {
             <p className="text-gray-600 mt-2 text-lg">Welcome back, Dr. Sadia Rahman</p>
           </div>
           <div className="flex gap-3">
-            <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:shadow-lg hover:shadow-green-200/50 hover:scale-105 transition-all duration-300">
-              <Plus className="w-4 h-4" />
-              New Appointment
-            </button>
             <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:shadow-lg hover:shadow-blue-200/50 hover:scale-105 transition-all duration-300">
               <Eye className="w-4 h-4" />
               View Schedule

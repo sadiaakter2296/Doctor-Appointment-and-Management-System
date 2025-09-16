@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import AppointmentModal from './AppointmentModal';
 import {
   Search,
   Filter,
@@ -17,7 +16,6 @@ import {
   TrendingUp,
   ChevronRight,
   Eye,
-  MessageCircle,
   Edit,
   Trash2,
   Plus,
@@ -37,8 +35,6 @@ const DoctorPage = () => {
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
-  const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [editingDoctor, setEditingDoctor] = useState(null);
   const [showForm, setShowForm] = useState(false);
 
@@ -103,11 +99,6 @@ const DoctorPage = () => {
     }
   };
 
-  const handleBookAppointment = (doctor) => {
-    setSelectedDoctor(doctor);
-    setShowAppointmentModal(true);
-  };
-
   const handleEdit = async (doctorData) => {
     try {
       await doctorService.updateDoctor(editingDoctor.id, doctorData);
@@ -164,10 +155,6 @@ const DoctorPage = () => {
 
   const handleEditDoctorClick = (doctor) => {
     openEditForm(doctor);
-  };
-
-  const handleScheduleAppointment = (doctorId) => {
-    alert(`Scheduling appointment with doctor ID: ${doctorId}`);
   };
 
   const handleMessageDoctor = (doctorId) => {
@@ -326,18 +313,6 @@ const DoctorPage = () => {
         </div>
       )}
 
-      {/* Debug Info - Remove in production */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-yellow-800 text-sm">
-            <strong>Debug:</strong> Total doctors: {doctors.length}, Filtered: {filteredDoctors.length}, Loading: {loading.toString()}
-            {doctors.length > 0 && (
-              <span> | First doctor: {doctors[0]?.name || 'N/A'}</span>
-            )}
-          </p>
-        </div>
-      )}
-
       {/* Loading State */}
       {loading && (
         <div className="bg-white rounded-2xl p-12 shadow-sm border border-gray-100 text-center">
@@ -431,13 +406,6 @@ const DoctorPage = () => {
                     Edit
                   </button>
                   <button
-                    onClick={() => handleBookAppointment(doctor)}
-                    className="flex-1 bg-green-100 text-green-700 py-2 px-3 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium flex items-center justify-center gap-1"
-                  >
-                    <MessageCircle className="w-3 h-3" />
-                    Book
-                  </button>
-                  <button
                     onClick={() => setShowDeleteConfirm(doctor.id)}
                     className="bg-red-100 text-red-700 py-2 px-3 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium flex items-center justify-center"
                   >
@@ -484,13 +452,6 @@ const DoctorPage = () => {
                         className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
                       >
                         <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleBookAppointment(doctor)}
-                        className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
-                        title="Book Appointment"
-                      >
-                        <MessageCircle className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => setShowDeleteConfirm(doctor.id)}
@@ -597,16 +558,6 @@ const DoctorPage = () => {
                 <button
                   onClick={() => {
                     setShowDoctorDetails(null);
-                    handleScheduleAppointment(showDoctorDetails.id);
-                  }}
-                  className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-green-200/50 transition-all duration-300"
-                >
-                  <Calendar className="w-4 h-4" />
-                  Book Appointment
-                </button>
-                <button
-                  onClick={() => {
-                    setShowDoctorDetails(null);
                     handleEditDoctorClick(showDoctorDetails);
                   }}
                   className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-blue-200/50 transition-all duration-300"
@@ -653,18 +604,6 @@ const DoctorPage = () => {
           onSave={editingDoctor ? handleEdit : handleAddDoctor}
           onCancel={closeForm}
           isEdit={!!editingDoctor}
-        />
-      )}
-
-      {/* Appointment Modal */}
-      {showAppointmentModal && (
-        <AppointmentModal
-          isOpen={showAppointmentModal}
-          onClose={() => {
-            setShowAppointmentModal(false);
-            setSelectedDoctor(null);
-          }}
-          doctor={selectedDoctor}
         />
       )}
     </div>

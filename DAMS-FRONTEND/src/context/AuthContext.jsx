@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../api/apiService';
-import MockAuthService from '../services/MockAuthService';
 
 const AuthContext = createContext(null);
 
@@ -56,37 +55,20 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       
-      // Try backend first, fallback to mock service
-      let response;
-      try {
-        console.log('🔄 Attempting backend login...');
-        response = await authAPI.login({ email, password });
-        console.log('✅ Backend login response:', response);
-      } catch (backendError) {
-        console.log('❌ Backend login failed, using mock service:', backendError.message);
-        response = await MockAuthService.login({ email, password });
-        console.log('✅ Mock service login response:', response);
-      }
+      console.log('🔄 Attempting login...');
+      const response = await authAPI.login({ email, password });
+      console.log('✅ Login response:', response);
       
-      // Handle both success formats (status: 'success' and success: true)
-      if (response.status === 'success' || response.success === true) {
-        // Check if response has the expected data structure
-        if (response.data && response.data.user && response.data.token) {
-          const { user: userData, token: userToken } = response.data;
-          setUser(userData);
-          setToken(userToken);
-          return { user: userData, token: userToken };
-        } else {
-          console.log('❌ Invalid response data structure:', response.data);
-          throw new Error('Invalid response format from server');
-        }
+      if (response.status === 'success' && response.data) {
+        const { user: userData, token: userToken } = response.data;
+        setUser(userData);
+        setToken(userToken);
+        return { user: userData, token: userToken };
       } else {
-        console.log('❌ Login validation failed - response:', response);
         throw new Error(response.message || 'Login failed');
       }
     } catch (error) {
       console.error('❌ Login failed:', error);
-      // Provide user-friendly error messages
       const errorMessage = error.message || 'Invalid credentials';
       throw new Error(errorMessage);
     } finally {
@@ -98,43 +80,22 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       
-      // Try backend first, fallback to mock service
-      let response;
-      try {
-        console.log('🔄 Attempting backend registration...');
-        console.log('📤 Sending data:', { name, email, password: '***' });
-        response = await authAPI.register({ name, email, password });
-        console.log('✅ Backend registration response:', response);
-        
-        // If we get here, backend worked, so don't fall back to mock
-        if (response.status === 'success' || response.success === true) {
-          return { success: true, message: response.message || 'Registration successful' };
-        } else {
-          throw new Error(response.message || 'Registration failed');
-        }
-      } catch (backendError) {
-        console.log('❌ Backend registration failed:', backendError.message);
-        console.log('🔍 Full error details:', backendError);
-        
-        // Only use mock service if it's a network error, not a validation error
-        if (backendError.message.includes('Network error') || backendError.message.includes('fetch')) {
-          console.log('🔄 Using mock service due to network error...');
-          response = await MockAuthService.register({ name, email, password });
-          console.log('✅ Mock service registration response:', response);
-        } else {
-          // Re-throw backend validation errors
-          throw backendError;
-        }
-      }
+      console.log('🔄 Attempting registration...');
+      console.log('📤 Sending data:', { name, email, password: '***' });
+      console.log('📡 API endpoint:', 'http://127.0.0.1:8000/api/register');
       
-      // Handle both success formats (status: 'success' and success: true)
-      if (response.status === 'success' || response.success === true) {
+      const response = await authAPI.register({ name, email, password });
+      console.log('✅ Registration response:', response);
+      
+      if (response.status === 'success') {
+        console.log('✅ Registration successful, data saved to database');
         return { success: true, message: response.message || 'Registration successful' };
       } else {
+        console.log('❌ Registration failed - server response:', response);
         throw new Error(response.message || 'Registration failed');
       }
     } catch (error) {
-      console.error('Registration failed:', error);
+      console.error('❌ Registration failed with error:', error);
       
       // Handle validation errors
       if (error.message && typeof error.message === 'object') {

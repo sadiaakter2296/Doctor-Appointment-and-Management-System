@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { User, Mail, Phone, Calendar, MapPin, Heart, AlertTriangle, Shield, Save, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, Mail, Phone, Calendar, MapPin, Heart, AlertTriangle, Shield, Save, X, Stethoscope, Clock } from 'lucide-react';
+import { patientService } from '../../api/patientService';
+import { doctorService } from '../../api/doctorService';
 
 const PatientForm = ({ isOpen, onClose, onPatientAdded, patient = null }) => {
   const [formData, setFormData] = useState({
@@ -16,16 +18,44 @@ const PatientForm = ({ isOpen, onClose, onPatientAdded, patient = null }) => {
     medical_history: patient?.medical_history || '',
     allergies: patient?.allergies || '',
     insurance_provider: patient?.insurance_provider || '',
-    insurance_policy_number: patient?.insurance_policy_number || ''
+    insurance_policy_number: patient?.insurance_policy_number || '',
+    doctor_id: patient?.doctor_id || '',
+    booking_reason: patient?.booking_reason || '',
+    preferred_appointment_date: patient?.preferred_appointment_date || '',
+    appointment_status: patient?.appointment_status || 'Pending'
   });
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState(false);
+  const [doctors, setDoctors] = useState([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(false);
 
   const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
   const genders = ['Male', 'Female', 'Other'];
   const statuses = ['Active', 'Inactive'];
+  const appointmentStatuses = ['Pending', 'Confirmed', 'Completed', 'Cancelled'];
+
+  // Load doctors when component mounts
+  useEffect(() => {
+    const loadDoctors = async () => {
+      try {
+        setLoadingDoctors(true);
+        const { doctorService } = await import('../../api/doctorService');
+        const response = await doctorService.getAllDoctors();
+        setDoctors(response.data || []);
+      } catch (error) {
+        console.error('Error loading doctors:', error);
+        setDoctors([]);
+      } finally {
+        setLoadingDoctors(false);
+      }
+    };
+
+    if (isOpen) {
+      loadDoctors();
+    }
+  }, [isOpen]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -53,6 +83,16 @@ const PatientForm = ({ isOpen, onClose, onPatientAdded, patient = null }) => {
     if (!formData.gender) newErrors.gender = 'Gender is required';
     if (!formData.address.trim()) newErrors.address = 'Address is required';
     if (!formData.emergency_contact.trim()) newErrors.emergency_contact = 'Emergency contact is required';
+    
+    // Doctor booking validation (if doctor is selected)
+    if (formData.doctor_id) {
+      if (!formData.preferred_appointment_date) {
+        newErrors.preferred_appointment_date = 'Preferred appointment date is required when booking a doctor';
+      }
+      if (!formData.booking_reason.trim()) {
+        newErrors.booking_reason = 'Reason for visit is required when booking a doctor';
+      }
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -69,21 +109,45 @@ const PatientForm = ({ isOpen, onClose, onPatientAdded, patient = null }) => {
     setErrors({});
 
     try {
-      // Import patientService dynamically to avoid circular dependency
+      // Import services dynamically to avoid circular dependency
       const { patientService } = await import('../../api/patientService');
+      const { appointmentService } = await import('../../api/appointmentService');
       
-      let response;
+      let patientResponse;
       if (patient) {
-        response = await patientService.update(patient.id, formData);
+        patientResponse = await patientService.update(patient.id, formData);
       } else {
-        response = await patientService.create(formData);
+        patientResponse = await patientService.create(formData);
+      }
+
+      // If a doctor is selected, create an appointment
+      if (formData.doctor_id && formData.preferred_appointment_date) {
+        const appointmentData = {
+          doctor_id: formData.doctor_id,
+          patient_id: patientResponse.data?.id || patientResponse.id,
+          patient_name: formData.name,
+          patient_email: formData.email,
+          patient_phone: formData.phone,
+          appointment_date: formData.preferred_appointment_date.split('T')[0],
+          appointment_time: formData.preferred_appointment_date.split('T')[1] || '09:00',
+          reason: formData.booking_reason,
+          status: formData.appointment_status || 'pending'
+        };
+
+        try {
+          await appointmentService.create(appointmentData);
+          console.log('Appointment created successfully');
+        } catch (appointmentError) {
+          console.error('Error creating appointment:', appointmentError);
+          // Don't fail the entire process if appointment creation fails
+        }
       }
 
       setSuccess(true);
       
       // Call parent callback to refresh patient list
       if (onPatientAdded) {
-        onPatientAdded(response.patient);
+        onPatientAdded(patientResponse.data || patientResponse);
       }
 
       // Auto close after success
@@ -96,7 +160,8 @@ const PatientForm = ({ isOpen, onClose, onPatientAdded, patient = null }) => {
             name: '', email: '', phone: '', date_of_birth: '', gender: '',
             blood_type: '', address: '', emergency_contact: '', emergency_contact_name: '',
             status: 'Active', medical_history: '', allergies: '', insurance_provider: '',
-            insurance_policy_number: ''
+            insurance_policy_number: '', doctor_id: '', booking_reason: '', 
+            preferred_appointment_date: '', appointment_status: 'Pending'
           });
         }
       }, 1500);
@@ -370,42 +435,241 @@ const PatientForm = ({ isOpen, onClose, onPatientAdded, patient = null }) => {
             </div>
           </div>
 
-          {/* Insurance Information */}
-          <div className="bg-green-50 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Shield className="h-5 w-5 text-green-500" />
-              Insurance Information
+          {/* Doctor Booking */}
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-lg border border-blue-200">
+            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <Stethoscope className="h-6 w-6 text-blue-600" />
+              Book Appointment with Doctor
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+            
+            {/* Doctor Selection */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Doctor *
+              </label>
+              <select
+                name="doctor_id"
+                value={formData.doctor_id}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                disabled={loadingDoctors}
+              >
+                <option value="">
+                  {loadingDoctors ? 'Loading doctors...' : 'Choose a doctor to see their schedule'}
+                </option>
+                {doctors.map(doctor => (
+                  <option key={doctor.id} value={doctor.id}>
+                    Dr. {doctor.name} - {doctor.specialization}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Doctor Information & Schedule */}
+            {formData.doctor_id && (
+              <div className="bg-white rounded-lg border shadow-sm mb-6">
+                {(() => {
+                  const selectedDoctor = doctors.find(d => d.id.toString() === formData.doctor_id);
+                  if (!selectedDoctor) return null;
+                  
+                  return (
+                    <div className="p-6">
+                      {/* Doctor Information */}
+                      <div className="border-b border-gray-200 pb-4 mb-4">
+                        <h4 className="text-lg font-semibold text-gray-900 mb-3">Doctor Information</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="font-medium text-gray-700">Name:</span> Dr. {selectedDoctor.name}
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-700">Specialty:</span> {selectedDoctor.specialization || selectedDoctor.specialty}
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-700">Experience:</span> {selectedDoctor.experience} years
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-700">Consultation Fee:</span> ${selectedDoctor.fee}
+                          </div>
+                          <div className="md:col-span-2">
+                            <span className="font-medium text-gray-700">Location:</span> {selectedDoctor.location}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Doctor's Schedule */}
+                      <div className="mb-4">
+                        <h4 className="text-lg font-semibold text-gray-900 mb-3">Doctor's Schedule</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {(() => {
+                            // Create dynamic schedule based on doctor specialty
+                            const getScheduleForSpecialty = (specialty) => {
+                              if (specialty?.toLowerCase().includes('dermatology')) {
+                                return [
+                                  { day: 'Monday', hours: '09:00 - 17:00' },
+                                  { day: 'Tuesday', hours: '09:00 - 17:00' },
+                                  { day: 'Wednesday', hours: '09:00 - 17:00' },
+                                  { day: 'Thursday', hours: '09:00 - 17:00' },
+                                  { day: 'Friday', hours: '09:00 - 17:00' },
+                                  { day: 'Saturday', hours: '09:00 - 14:00' },
+                                  { day: 'Sunday', hours: 'Closed' }
+                                ];
+                              } else if (specialty?.toLowerCase().includes('cardiology')) {
+                                return [
+                                  { day: 'Monday', hours: '08:00 - 16:00' },
+                                  { day: 'Tuesday', hours: '08:00 - 16:00' },
+                                  { day: 'Wednesday', hours: '08:00 - 16:00' },
+                                  { day: 'Thursday', hours: '08:00 - 16:00' },
+                                  { day: 'Friday', hours: '08:00 - 14:00' },
+                                  { day: 'Saturday', hours: 'Closed' },
+                                  { day: 'Sunday', hours: 'Closed' }
+                                ];
+                              } else {
+                                return [
+                                  { day: 'Monday', hours: '09:00 - 17:00' },
+                                  { day: 'Tuesday', hours: '09:00 - 17:00' },
+                                  { day: 'Wednesday', hours: '09:00 - 17:00' },
+                                  { day: 'Thursday', hours: '09:00 - 17:00' },
+                                  { day: 'Friday', hours: '09:00 - 17:00' },
+                                  { day: 'Saturday', hours: '09:00 - 14:00' },
+                                  { day: 'Sunday', hours: 'Closed' }
+                                ];
+                              }
+                            };
+                            
+                            return getScheduleForSpecialty(selectedDoctor.specialization || selectedDoctor.specialty);
+                          })().map(schedule => (
+                            <div key={schedule.day} className="bg-gray-50 p-3 rounded-md">
+                              <div className="font-medium text-gray-900">{schedule.day}:</div>
+                              <div className={`text-sm ${schedule.hours === 'Closed' ? 'text-red-600' : 'text-green-600'}`}>
+                                {schedule.hours}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* Appointment Details */}
+            <div className="bg-white rounded-lg border shadow-sm p-6">
+              <h4 className="text-lg font-semibold text-gray-900 mb-4">Appointment Details</h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Preferred Date *
+                  </label>
+                  <input
+                    type="date"
+                    name="preferred_appointment_date"
+                    value={formData.preferred_appointment_date ? formData.preferred_appointment_date.split('T')[0] : ''}
+                    onChange={(e) => {
+                      const date = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        preferred_appointment_date: date ? `${date}T09:00` : ''
+                      }));
+                      // Clear error when user selects a date
+                      if (errors.preferred_appointment_date) {
+                        setErrors(prev => ({
+                          ...prev,
+                          preferred_appointment_date: ''
+                        }));
+                      }
+                    }}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.preferred_appointment_date ? 'border-red-500' : ''
+                    }`}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                  {errors.preferred_appointment_date && (
+                    <p className="text-red-500 text-sm mt-1">{errors.preferred_appointment_date}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Preferred Time *
+                  </label>
+                  <select
+                    name="preferred_time"
+                    value={formData.preferred_appointment_date ? formData.preferred_appointment_date.split('T')[1] : ''}
+                    onChange={(e) => {
+                      const time = e.target.value;
+                      const date = formData.preferred_appointment_date ? formData.preferred_appointment_date.split('T')[0] : '';
+                      if (date && time) {
+                        setFormData(prev => ({
+                          ...prev,
+                          preferred_appointment_date: `${date}T${time}`
+                        }));
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={!formData.preferred_appointment_date || !formData.preferred_appointment_date.split('T')[0]}
+                  >
+                    <option value="">Select a time</option>
+                    <option value="09:00">09:00 AM</option>
+                    <option value="09:30">09:30 AM</option>
+                    <option value="10:00">10:00 AM</option>
+                    <option value="10:30">10:30 AM</option>
+                    <option value="11:00">11:00 AM</option>
+                    <option value="11:30">11:30 AM</option>
+                    <option value="12:00">12:00 PM</option>
+                    <option value="12:30">12:30 PM</option>
+                    <option value="13:00">01:00 PM</option>
+                    <option value="13:30">01:30 PM</option>
+                    <option value="14:00">02:00 PM</option>
+                    <option value="14:30">02:30 PM</option>
+                    <option value="15:00">03:00 PM</option>
+                    <option value="15:30">03:30 PM</option>
+                    <option value="16:00">04:00 PM</option>
+                    <option value="16:30">04:30 PM</option>
+                    <option value="17:00">05:00 PM</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Insurance Provider
+                  Reason for Visit *
                 </label>
-                <input
-                  type="text"
-                  name="insurance_provider"
-                  value={formData.insurance_provider}
+                <textarea
+                  name="booking_reason"
+                  value={formData.booking_reason}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g., Blue Cross Blue Shield"
+                  rows={3}
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.booking_reason ? 'border-red-500' : ''
+                  }`}
+                  placeholder="Brief description of your medical concern or symptoms"
                 />
+                {errors.booking_reason && (
+                  <p className="text-red-500 text-sm mt-1">{errors.booking_reason}</p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Policy Number
+                  Appointment Status
                 </label>
-                <input
-                  type="text"
-                  name="insurance_policy_number"
-                  value={formData.insurance_policy_number}
+                <select
+                  name="appointment_status"
+                  value={formData.appointment_status}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Insurance policy number"
-                />
+                >
+                  {appointmentStatuses.map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
+
+          
 
           {/* Status */}
           <div>

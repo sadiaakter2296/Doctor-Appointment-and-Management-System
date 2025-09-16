@@ -12,7 +12,6 @@ import {
   Users,
   User,
   TrendingUp,
-  MessageSquare,
   Share2,
   Bookmark,
   ChevronLeft,
@@ -320,34 +319,24 @@ const DoctorDetails = () => {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Appointment Booking */}
-          <div className="bg-gradient-to-br from-white/90 to-blue-50/90 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-blue-200/30">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">Book Appointment</h3>
+          {/* Doctor Quick Stats */}
+          <div className="bg-gradient-to-br from-white/90 to-purple-50/90 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-purple-200/30">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">Quick Stats</h3>
             
             <div className="space-y-4">
               <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200/50">
                 <div className="flex items-center justify-between">
                   <span className="text-blue-700 font-bold text-2xl">৳{doctor.fee}</span>
-                  <span className="text-sm text-blue-600 bg-blue-200 px-2 py-1 rounded-lg">Consultation</span>
+                  <span className="text-sm text-blue-600 bg-blue-200 px-2 py-1 rounded-lg">Consultation Fee</span>
                 </div>
               </div>
 
               <div className="p-3 bg-gradient-to-r from-green-50 to-green-100 rounded-xl border border-green-200/50">
                 <div className="flex items-center gap-2 text-green-700">
-                  <Calendar className="w-4 h-4" />
-                  <span className="font-medium">Next Available: {doctor.nextAvailable}</span>
+                  <Star className="w-4 h-4" />
+                  <span className="font-medium">Rating: {doctor.rating || '4.5'} / 5</span>
                 </div>
               </div>
-
-              <button className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-4 px-6 rounded-xl font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-blue-200/50 hover:scale-105 flex items-center justify-center gap-2">
-                <Calendar className="w-5 h-5" />
-                Book Appointment
-              </button>
-
-              <button className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-3 px-6 rounded-xl font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-green-200/50 hover:scale-105 flex items-center justify-center gap-2">
-                <MessageSquare className="w-4 h-4" />
-                Send Message
-              </button>
             </div>
           </div>
 

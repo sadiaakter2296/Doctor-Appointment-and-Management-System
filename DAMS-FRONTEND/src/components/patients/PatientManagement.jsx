@@ -295,6 +295,7 @@ const PatientManagement = () => {
                   <th className="text-left py-3 px-4 font-medium text-gray-700">Contact</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-700">Age/Gender</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-700">Blood Type</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Doctor Booking</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
                 </tr>
@@ -339,6 +340,41 @@ const PatientManagement = () => {
                         <span className="font-medium text-red-600">
                           {patient.blood_type || '-'}
                         </span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="space-y-1">
+                        {patient.doctor && (
+                          <div className="text-sm font-medium text-blue-600">
+                            Dr. {patient.doctor.name}
+                          </div>
+                        )}
+                        {patient.doctor && patient.doctor.specialization && (
+                          <div className="text-xs text-gray-500">
+                            {patient.doctor.specialization}
+                          </div>
+                        )}
+                        {patient.preferred_appointment_date && (
+                          <div className="text-xs text-gray-600">
+                            {formatDate(patient.preferred_appointment_date)}
+                          </div>
+                        )}
+                        {patient.appointment_status && (
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
+                            patient.appointment_status === 'Confirmed' 
+                              ? 'bg-green-100 text-green-800' 
+                              : patient.appointment_status === 'Pending'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : patient.appointment_status === 'Completed'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {patient.appointment_status}
+                          </span>
+                        )}
+                        {!patient.doctor && !patient.preferred_appointment_date && (
+                          <span className="text-sm text-gray-400">No booking</span>
+                        )}
                       </div>
                     </td>
                     <td className="py-4 px-4">
