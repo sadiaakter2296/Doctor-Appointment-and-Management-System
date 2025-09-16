@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Appointment Creation Sync</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 1000px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        input, select, textarea { padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 4px; width: 300px; }
+        .patient-list, .appointment-list { max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin: 10px 0; }
+        .form-group { margin: 10px 0; }
+        label { display: inline-block; width: 150px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🏥 DAMS Patient + Appointment Creation Test</h1>
+    <p>This page tests the complete flow: Create patient with appointment info and verify it appears in appointment list</p>
+    
+    <div class="section">
+        <h3>📋 Current Data</h3>
+        <div style="display: flex; gap: 20px;">
+            <div style="flex: 1;">
+                <h4>Patients</h4>
+                <button onclick="loadPatients()">Refresh Patients</button>
+                <div id="patientList" class="patient-list">Loading...</div>
+            </div>
+            <div style="flex: 1;">
+                <h4>Appointments</h4>
+                <button onclick="loadAppointments()">Refresh Appointments</button>
+                <div id="appointmentList" class="appointment-list">Loading...</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h3>👨‍⚕️ Available Doctors</h3>
+        <button onclick="loadDoctors()">Load Doctors</button>
+        <div id="doctorList" class="patient-list">Click load to see doctors...</div>
+    </div>
+    
+    <div class="section">
+        <h3>➕ Create Patient with Appointment</h3>
+        <div class="form-group">
+            <label>Patient Name:</label>
+            <input type="text" id="patientName" placeholder="Patient Name" value="John Doe">
+        </div>
+        <div class="form-group">
+            <label>Email:</label>
+            <input type="email" id="patientEmail" placeholder="Email" value="john@example.com">
+        </div>
+        <div class="form-group">
+            <label>Phone:</label>
+            <input type="tel" id="patientPhone" placeholder="Phone" value="1234567890">
+        </div>
+        <div class="form-group">
+            <label>Gender:</label>
+            <select id="patientGender">
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Date of Birth:</label>
+            <input type="date" id="patientDOB" value="1990-01-01">
+        </div>
+        <div class="form-group">
+            <label>Address:</label>
+            <textarea id="patientAddress" placeholder="Address">123 Main St, City, State</textarea>
+        </div>
+        <div class="form-group">
+            <label>Emergency Contact:</label>
+            <input type="tel" id="emergencyContact" placeholder="Emergency Contact" value="0987654321">
+        </div>
+        
+        <h4>Appointment Details</h4>
+        <div class="form-group">
+            <label>Doctor:</label>
+            <select id="doctorId">
+                <option value="">Select Doctor</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Appointment Date:</label>
+            <input type="date" id="appointmentDate" min="" value="">
+        </div>
+        <div class="form-group">
+            <label>Appointment Time:</label>
+            <select id="appointmentTime">
+                <option value="09:00">09:00 AM</option>
+                <option value="10:00">10:00 AM</option>
+                <option value="11:00">11:00 AM</option>
+                <option value="14:00">02:00 PM</option>
+                <option value="15:00">03:00 PM</option>
+                <option value="16:00">04:00 PM</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Reason:</label>
+            <textarea id="appointmentReason" placeholder="Reason for visit">Regular checkup</textarea>
+        </div>
+        
+        <button onclick="createPatientWithAppointment()">Create Patient + Appointment</button>
+        <button onclick="testEventSystem()">Test Event System</button>
+    </div>
+    
+    <div class="section">
+        <h3>🔄 Event Testing</h3>
+        <button onclick="setupEventListeners()">Setup Event Listeners</button>
+        <button onclick="triggerTestEvents()">Trigger Test Events</button>
+        <div id="eventLog" class="patient-list" style="height: 150px;">Event log will appear here...</div>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        let currentPatients = [];
+        let currentAppointments = [];
+        let currentDoctors = [];
+        let eventListenersActive = false;
+
+        function addResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${type}`;
+            resultDiv.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            resultsDiv.insertBefore(resultDiv, resultsDiv.firstChild);
+        }
+
+        function logEvent(message) {
+            const eventLog = document.getElementById('eventLog');
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            eventLog.insertBefore(logEntry, eventLog.firstChild);
+        }
+
+        async function loadPatients() {
+            try {
+                const response = await fetch('http://localhost:8000/api/patients');
+                if (response.ok) {
+                    const result = await response.json();
+                    currentPatients = result.data || result;
+                    
+                    const listDiv = document.getElementById('patientList');
+                    if (currentPatients.length === 0) {
+                        listDiv.innerHTML = '<em>No patients found</em>';
+                    } else {
+                        listDiv.innerHTML = currentPatients.map(patient => 
+                            `<div><strong>${patient.name}</strong> (ID: ${patient.id}) - ${patient.email}</div>`
+                        ).join('');
+                    }
+                    
+                    addResult(`✅ Loaded ${currentPatients.length} patients`, 'success');
+                } else {
+                    addResult(`❌ Failed to load patients: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Error loading patients: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadAppointments() {
+            try {
+                const response = await fetch('http://localhost:8000/api/appointments');
+                if (response.ok) {
+                    const result = await response.json();
+                    currentAppointments = result.data || result;
+                    
+                    const listDiv = document.getElementById('appointmentList');
+                    if (currentAppointments.length === 0) {
+                        listDiv.innerHTML = '<em>No appointments found</em>';
+                    } else {
+                        listDiv.innerHTML = currentAppointments.map(apt => 
+                            `<div><strong>${apt.patient_name}</strong> - ${apt.appointment_date} ${apt.appointment_time} (${apt.status})</div>`
+                        ).join('');
+                    }
+                    
+                    addResult(`✅ Loaded ${currentAppointments.length} appointments`, 'success');
+                } else {
+                    addResult(`❌ Failed to load appointments: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Error loading appointments: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadDoctors() {
+            try {
+                const response = await fetch('http://localhost:8000/api/doctors');
+                if (response.ok) {
+                    const result = await response.json();
+                    currentDoctors = result.data || result;
+                    
+                    const listDiv = document.getElementById('doctorList');
+                    const selectDiv = document.getElementById('doctorId');
+                    
+                    if (currentDoctors.length === 0) {
+                        listDiv.innerHTML = '<em>No doctors found</em>';
+                    } else {
+                        listDiv.innerHTML = currentDoctors.map(doctor => 
+                            `<div><strong>Dr. ${doctor.name}</strong> - ${doctor.specialization} (ID: ${doctor.id})</div>`
+                        ).join('');
+                        
+                        selectDiv.innerHTML = '<option value="">Select Doctor</option>' + 
+                            currentDoctors.map(doctor => 
+                                `<option value="${doctor.id}">Dr. ${doctor.name} - ${doctor.specialization}</option>`
+                            ).join('');
+                    }
+                    
+                    addResult(`✅ Loaded ${currentDoctors.length} doctors`, 'success');
+                } else {
+                    addResult(`❌ Failed to load doctors: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Error loading doctors: ${error.message}`, 'error');
+            }
+        }
+
+        async function createPatientWithAppointment() {
+            const patientData = {
+                name: document.getElementById('patientName').value,
+                email: document.getElementById('patientEmail').value,
+                phone: document.getElementById('patientPhone').value,
+                gender: document.getElementById('patientGender').value,
+                date_of_birth: document.getElementById('patientDOB').value,
+                address: document.getElementById('patientAddress').value,
+                emergency_contact: document.getElementById('emergencyContact').value,
+                doctor_id: document.getElementById('doctorId').value,
+                preferred_appointment_date: document.getElementById('appointmentDate').value + 'T' + document.getElementById('appointmentTime').value,
+                booking_reason: document.getElementById('appointmentReason').value,
+                appointment_status: 'Pending'
+            };
+
+            addResult(`🚀 Creating patient with appointment data: ${JSON.stringify(patientData, null, 2)}`, 'info');
+
+            try {
+                const response = await fetch('http://localhost:8000/api/patients', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(patientData)
+                });
+
+                if (response.ok) {
+                    const newPatient = await response.json();
+                    addResult(`✅ Patient created successfully: ${patientData.name} (ID: ${newPatient.id || 'unknown'})`, 'success');
+                    
+                    // Simulate the events that would be dispatched
+                    window.dispatchEvent(new CustomEvent('patientUpdated', { 
+                        detail: { patient: newPatient } 
+                    }));
+                    
+                    if (patientData.doctor_id && patientData.preferred_appointment_date) {
+                        addResult(`📅 Appointment should also be created...`, 'info');
+                        
+                        // Wait a bit then check appointments
+                        setTimeout(async () => {
+                            await loadAppointments();
+                            addResult(`🔄 Refreshed appointment list to check for new appointment`, 'info');
+                        }, 1000);
+                    }
+                    
+                    // Refresh patient list
+                    setTimeout(() => loadPatients(), 500);
+                } else {
+                    const error = await response.text();
+                    addResult(`❌ Failed to create patient: ${response.status} - ${error}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Error creating patient: ${error.message}`, 'error');
+            }
+        }
+
+        function setupEventListeners() {
+            if (eventListenersActive) {
+                addResult(`⚠️ Event listeners already active`, 'info');
+                return;
+            }
+
+            window.addEventListener('patientUpdated', function(event) {
+                logEvent(`🔔 patientUpdated: ${JSON.stringify(event.detail)}`);
+                addResult(`🔔 Received patientUpdated event`, 'success');
+            });
+
+            window.addEventListener('appointmentCreated', function(event) {
+                logEvent(`🔔 appointmentCreated: ${JSON.stringify(event.detail)}`);
+                addResult(`🔔 Received appointmentCreated event`, 'success');
+            });
+
+            eventListenersActive = true;
+            addResult(`✅ Event listeners setup complete`, 'success');
+        }
+
+        function triggerTestEvents() {
+            window.dispatchEvent(new CustomEvent('patientUpdated', { 
+                detail: { patient: { id: 999, name: 'Test Patient' } } 
+            }));
+            
+            window.dispatchEvent(new CustomEvent('appointmentCreated', { 
+                detail: { appointment: { id: 999, patient_name: 'Test Patient' } } 
+            }));
+            
+            addResult(`📡 Test events dispatched`, 'info');
+        }
+
+        function testEventSystem() {
+            setupEventListeners();
+            setTimeout(() => triggerTestEvents(), 100);
+        }
+
+        // Initialize page
+        window.addEventListener('load', function() {
+            // Set minimum date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('appointmentDate').min = today;
+            document.getElementById('appointmentDate').value = today;
+            
+            // Add timestamp to patient name
+            document.getElementById('patientName').value = `Test Patient ${Date.now()}`;
+            document.getElementById('patientEmail').value = `test${Date.now()}@example.com`;
+            
+            loadPatients();
+            loadAppointments();
+            loadDoctors();
+            addResult(`🌟 Test page loaded - Ready to test patient + appointment creation!`, 'info');
+        });
+    </script>
+</body>
+</html>

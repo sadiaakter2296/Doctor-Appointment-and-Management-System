@@ -59,6 +59,30 @@ class PatientController extends Controller
             $patient = Patient::create($validatedData);
             $patient->load('doctor');
 
+            // If appointment details are provided, create an appointment
+            if ($validatedData['doctor_id'] && $validatedData['preferred_appointment_date']) {
+                $appointmentData = [
+                    'patient_id' => $patient->id,
+                    'doctor_id' => $validatedData['doctor_id'],
+                    'patient_name' => $patient->name,
+                    'patient_email' => $patient->email,
+                    'patient_phone' => $patient->phone,
+                    'appointment_date' => date('Y-m-d', strtotime($validatedData['preferred_appointment_date'])),
+                    'appointment_time' => date('H:i:s', strtotime($validatedData['preferred_appointment_date'])),
+                    'reason' => $validatedData['booking_reason'] ?? '',
+                    'status' => strtolower($validatedData['appointment_status'] ?? 'pending')
+                ];
+
+                try {
+                    $appointment = \App\Models\Appointment::create($appointmentData);
+                    $patient->appointment_created = true;
+                    \Log::info('Appointment created automatically for patient', ['patient_id' => $patient->id, 'appointment_id' => $appointment->id]);
+                } catch (\Exception $appointmentError) {
+                    \Log::error('Failed to create appointment for patient', ['error' => $appointmentError->getMessage()]);
+                    // Don't fail the patient creation if appointment creation fails
+                }
+            }
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Patient created successfully',

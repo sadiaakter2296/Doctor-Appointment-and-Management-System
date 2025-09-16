@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Status Update</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>DAMS Status Update Test</h1>
+    <p>This page tests the appointment status update functionality</p>
+    
+    <div>
+        <h3>Test Status Update API</h3>
+        <input type="number" id="appointmentId" placeholder="Appointment ID" value="1">
+        <select id="statusSelect">
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+        </select>
+        <button onclick="testStatusUpdate()">Test Status Update</button>
+    </div>
+    
+    <div>
+        <h3>Test Patient API</h3>
+        <button onclick="testPatientAPI()">Fetch Patients</button>
+    </div>
+    
+    <div>
+        <h3>Test Appointment API</h3>
+        <button onclick="testAppointmentAPI()">Fetch Appointments</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        function addResult(message, isSuccess = true) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${isSuccess ? 'success' : 'error'}`;
+            resultDiv.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            resultsDiv.insertBefore(resultDiv, resultsDiv.firstChild);
+        }
+
+        async function testStatusUpdate() {
+            const appointmentId = document.getElementById('appointmentId').value;
+            const status = document.getElementById('statusSelect').value;
+            
+            try {
+                const response = await fetch(`http://localhost:8000/api/appointments/${appointmentId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: status })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    addResult(`✅ Status updated successfully! Appointment ${appointmentId} status changed to: ${status}`, true);
+                    console.log('Updated appointment:', result);
+                } else {
+                    const error = await response.text();
+                    addResult(`❌ Failed to update status: ${response.status} - ${error}`, false);
+                }
+            } catch (error) {
+                addResult(`❌ Error: ${error.message}`, false);
+            }
+        }
+        
+        async function testPatientAPI() {
+            try {
+                const response = await fetch('http://localhost:8000/api/patients');
+                if (response.ok) {
+                    const result = await response.json();
+                    const patients = result.data || result;
+                    addResult(`✅ Patients API working! Found ${patients.length} patients`, true);
+                    console.log('Patients:', patients);
+                } else {
+                    addResult(`❌ Patients API failed: ${response.status}`, false);
+                }
+            } catch (error) {
+                addResult(`❌ Error fetching patients: ${error.message}`, false);
+            }
+        }
+        
+        async function testAppointmentAPI() {
+            try {
+                const response = await fetch('http://localhost:8000/api/appointments');
+                if (response.ok) {
+                    const result = await response.json();
+                    const appointments = result.data || result;
+                    addResult(`✅ Appointments API working! Found ${appointments.length} appointments`, true);
+                    console.log('Appointments:', appointments);
+                } else {
+                    addResult(`❌ Appointments API failed: ${response.status}`, false);
+                }
+            } catch (error) {
+                addResult(`❌ Error fetching appointments: ${error.message}`, false);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -13,7 +13,7 @@ class AppointmentController extends Controller
     public function index(): JsonResponse
     {
         try {
-            $appointments = Appointment::with('doctor')->get();
+            $appointments = Appointment::with(['doctor', 'patient'])->get();
             return response()->json($appointments);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to fetch appointments'], 500);
@@ -51,7 +51,7 @@ class AppointmentController extends Controller
             }
 
             $appointment = Appointment::create($request->all());
-            return response()->json($appointment->load('doctor'), 201);
+            return response()->json($appointment->load(['doctor', 'patient']), 201);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to create appointment'], 500);
         }
@@ -60,7 +60,7 @@ class AppointmentController extends Controller
     public function show($id): JsonResponse
     {
         try {
-            $appointment = Appointment::with('doctor')->find($id);
+            $appointment = Appointment::with(['doctor', 'patient'])->find($id);
             
             if (!$appointment) {
                 return response()->json(['error' => 'Appointment not found'], 404);
@@ -97,7 +97,7 @@ class AppointmentController extends Controller
             }
 
             $appointment->update($request->all());
-            return response()->json($appointment->load('doctor'));
+            return response()->json($appointment->load(['doctor', 'patient']));
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to update appointment'], 500);
         }
@@ -123,7 +123,7 @@ class AppointmentController extends Controller
     {
         try {
             $appointments = Appointment::where('doctor_id', $doctorId)
-                ->with('doctor')
+                ->with(['doctor', 'patient'])
                 ->orderBy('appointment_date')
                 ->orderBy('appointment_time')
                 ->get();
@@ -138,7 +138,7 @@ class AppointmentController extends Controller
     {
         try {
             $appointments = Appointment::where('patient_email', $patientEmail)
-                ->with('doctor')
+                ->with(['doctor', 'patient'])
                 ->orderBy('appointment_date')
                 ->orderBy('appointment_time')
                 ->get();
@@ -167,7 +167,7 @@ class AppointmentController extends Controller
             }
 
             $appointment->update(['status' => $request->status]);
-            return response()->json($appointment->load('doctor'));
+            return response()->json($appointment->load(['doctor', 'patient']));
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to update appointment status'], 500);
         }

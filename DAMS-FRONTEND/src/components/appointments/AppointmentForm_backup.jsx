@@ -38,44 +38,78 @@ const AppointmentForm = ({ appointmentId, onClose, onAppointmentSaved }) => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
-  // Fetch patients and doctors on component mount
+  // Fetch patients and doctors
   useEffect(() => {
-    console.log('AppointmentForm mounted, fetching latest patient data...');
     fetchPatients();
     fetchDoctors();
-  }, []); // This will run every time the component mounts (key prop causes remount)
-
-  // Also fetch when patients array changes (for additional safety)
-  useEffect(() => {
-    if (patients.length === 0) {
-      console.log('No patients found, refetching...');
-      fetchPatients();
-    }
-  }, [patients.length]);
+  }, []);
 
   // Listen for patient updates from other components
   useEffect(() => {
-    const handlePatientUpdate = async (event) => {
-      console.log('🔄 Patient updated event received in AppointmentForm:', event.detail);
-      console.log('⏰ Current patients count before refresh:', patients.length);
-      
-      // Fetch latest patients with a small delay to ensure backend is updated
-      setTimeout(async () => {
-        const updatedPatients = await fetchPatients();
-        console.log('📊 Patients after refresh:', updatedPatients.length);
-      }, 100);
+    const handlePatientUpdate = (event) => {
+      console.log('Patient updated, refreshing patient list...', event.detail);
+      fetchPatients(); // Refresh the patient list
     };
 
     window.addEventListener('patientUpdated', handlePatientUpdate);
-    console.log('✅ AppointmentForm: Event listener added for patientUpdated');
     
     return () => {
       window.removeEventListener('patientUpdated', handlePatientUpdate);
-      console.log('🗑️ AppointmentForm: Event listener removed');
     };
   }, []);
 
   // Refresh patient data when the form opens (for new appointments)
+  useEffect(() => {
+    if (!appointmentId) { // Only for new appointments
+      fetchPatients();
+    }
+  }, [appointmentId]);
+import { useApp } from '../../context/AppContext';
+import Button from '../common/Button';
+import { format } from 'date-fns';
+import {
+  Calendar,
+  Clock,
+  User,
+  UserCheck,
+  FileText,
+  AlertCircle,
+  Save,
+  X,
+  Stethoscope,
+  Activity,
+  Phone,
+  Mail,
+  Heart,
+  MapPin
+} from 'lucide-react';
+
+const AppointmentForm = ({ appointmentId, onClose }) => {
+  const { appointments, addAppointment, updateAppointment } = useApp();
+  const [patients, setPatients] = useState([]);
+  const [doctors, setDoctors] = useState([]);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [formData, setFormData] = useState({
+    patient_id: '',
+    doctor_id: '',
+    patient_name: '',
+    patient_email: '',
+    patient_phone: '',
+    appointment_date: '',
+    appointment_time: '',
+    reason: '',
+    status: 'pending'
+  });
+  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+
+  // Fetch patients and doctors
+  useEffect(() => {
+    fetchPatients();
+    fetchDoctors();
+  }, []);
+
+  // Refresh patient data when the form opens (for new patients)
   useEffect(() => {
     if (!appointmentId) { // Only for new appointments
       fetchPatients();
@@ -109,23 +143,18 @@ const AppointmentForm = ({ appointmentId, onClose, onAppointmentSaved }) => {
 
   const fetchPatients = async () => {
     try {
-      console.log('🔍 Fetching patients from API...'); // Debug log
-      const response = await fetch('http://localhost:8000/api/patients');
-      console.log('📡 Patient API response status:', response.status); // Debug log
+      console.log('Fetching patients from API...'); // Debug log
+      const response = await fetch('http://127.0.0.1:8000/api/patients');
+      console.log('Patient API response status:', response.status); // Debug log
       if (response.ok) {
         const result = await response.json();
-        console.log('📋 Patient API result:', result); // Debug log
+        console.log('Patient API result:', result); // Debug log
         const patientsData = result.data || result;
-        console.log(`👥 Setting ${patientsData.length} patients:`, patientsData.map(p => `${p.name} (ID: ${p.id})`)); // Debug log
+        console.log('Setting patients:', patientsData); // Debug log
         setPatients(patientsData);
-        return patientsData; // Return the data for chaining
-      } else {
-        console.error('❌ Failed to fetch patients:', response.status);
-        return [];
       }
     } catch (error) {
-      console.error('❌ Error fetching patients:', error);
-      return [];
+      console.error('Error fetching patients:', error);
     }
   };
 
@@ -165,8 +194,6 @@ const AppointmentForm = ({ appointmentId, onClose, onAppointmentSaved }) => {
         appointment_time: formData.appointment_time + ':00' // Add seconds if needed
       };
 
-      console.log('Submitting appointment data:', appointmentData); // Debug log
-
       let response;
       if (appointmentId) {
         response = await fetch(`http://127.0.0.1:8000/api/appointments/${appointmentId}`, {
@@ -181,8 +208,6 @@ const AppointmentForm = ({ appointmentId, onClose, onAppointmentSaved }) => {
           body: JSON.stringify(appointmentData)
         });
       }
-
-      console.log('API response status:', response.status); // Debug log
 
       if (response.ok) {
         const result = await response.json();
@@ -240,31 +265,23 @@ const AppointmentForm = ({ appointmentId, onClose, onAppointmentSaved }) => {
       }
     }
     
-    // Clear errors
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50/50 via-white to-blue-50/30 p-6 max-w-4xl mx-auto">
-      <form onSubmit={handleSubmit} className="bg-gradient-to-r from-white/90 to-blue-50/90 backdrop-blur-xl rounded-2xl p-8 shadow-xl border border-blue-200/30 space-y-8">
+    <div className="bg-gradient-to-br from-white/95 to-blue-50/95 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-blue-200/30">
+      <form onSubmit={handleSubmit} className="space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-blue-200/30 pb-6">
-          <div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors mb-4"
-            >
-              <X className="w-5 h-5" />
-              Close
-            </button>
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
-              {appointmentId ? 'Edit Appointment' : 'Schedule New Appointment'}
-            </h2>
-            <p className="text-gray-600 mt-2">Fill in the details to schedule or update an appointment</p>
+        <div className="text-center mb-8">
+          <div className="p-4 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl shadow-lg w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+            <Calendar className="w-8 h-8 text-white" />
           </div>
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
+            {appointmentId ? 'Edit Appointment' : 'Schedule New Appointment'}
+          </h2>
+          <p className="text-gray-600 mt-2">Fill in the details to schedule or update an appointment</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -328,7 +345,7 @@ const AppointmentForm = ({ appointmentId, onClose, onAppointmentSaved }) => {
               <option value="">Select a doctor</option>
               {doctors.map(doctor => (
                 <option key={doctor.id} value={doctor.id}>
-                  Dr. {doctor.name} - {doctor.specialty}
+                  Dr. {doctor.name} - {doctor.specialization}
                 </option>
               ))}
             </select>
@@ -339,13 +356,11 @@ const AppointmentForm = ({ appointmentId, onClose, onAppointmentSaved }) => {
               </div>
             )}
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Date */}
           <div className="space-y-2">
             <label htmlFor="appointment_date" className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-              <Calendar className="w-4 h-4 text-purple-600" />
+              <Calendar className="w-4 h-4 text-green-600" />
               Date *
             </label>
             <input
@@ -399,57 +414,65 @@ const AppointmentForm = ({ appointmentId, onClose, onAppointmentSaved }) => {
               <User className="w-5 h-5 text-blue-600" />
               Selected Patient Details
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="flex items-center gap-3 bg-white/70 p-3 rounded-lg">
-                <Mail className="w-4 h-4 text-blue-500" />
-                <div>
-                  <p className="text-xs text-gray-500">Email</p>
-                  <p className="font-medium">{selectedPatient.email}</p>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-gray-500" />
+                <span className="font-medium">Name:</span> {selectedPatient.name}
               </div>
-              <div className="flex items-center gap-3 bg-white/70 p-3 rounded-lg">
-                <Phone className="w-4 h-4 text-green-500" />
-                <div>
-                  <p className="text-xs text-gray-500">Phone</p>
-                  <p className="font-medium">{selectedPatient.phone}</p>
-                </div>
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-gray-500" />
+                <span className="font-medium">Email:</span> {selectedPatient.email}
               </div>
-              <div className="flex items-center gap-3 bg-white/70 p-3 rounded-lg">
-                <Heart className="w-4 h-4 text-red-500" />
-                <div>
-                  <p className="text-xs text-gray-500">Blood Type</p>
-                  <p className="font-medium">{selectedPatient.blood_type || 'Not specified'}</p>
-                </div>
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-gray-500" />
+                <span className="font-medium">Phone:</span> {selectedPatient.phone}
               </div>
-              <div className="flex items-center gap-3 bg-white/70 p-3 rounded-lg">
-                <UserCheck className="w-4 h-4 text-purple-500" />
-                <div>
-                  <p className="text-xs text-gray-500">Gender</p>
-                  <p className="font-medium">{selectedPatient.gender}</p>
-                </div>
+              <div className="flex items-center gap-2">
+                <UserCheck className="w-4 h-4 text-gray-500" />
+                <span className="font-medium">Gender:</span> {selectedPatient.gender}
               </div>
-              <div className="flex items-center gap-3 bg-white/70 p-3 rounded-lg">
-                <MapPin className="w-4 h-4 text-orange-500" />
-                <div>
-                  <p className="text-xs text-gray-500">Address</p>
-                  <p className="font-medium">{selectedPatient.address}</p>
+              {selectedPatient.blood_type && (
+                <div className="flex items-center gap-2">
+                  <Heart className="w-4 h-4 text-red-500" />
+                  <span className="font-medium">Blood Type:</span> {selectedPatient.blood_type}
                 </div>
+              )}
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-gray-500" />
+                <span className="font-medium">DOB:</span> {new Date(selectedPatient.date_of_birth).toLocaleDateString()}
               </div>
-              <div className="flex items-center gap-3 bg-white/70 p-3 rounded-lg">
-                <Activity className="w-4 h-4 text-green-600" />
-                <div>
-                  <p className="text-xs text-gray-500">Status</p>
-                  <p className="font-medium">{selectedPatient.status}</p>
+              {selectedPatient.address && (
+                <div className="flex items-center gap-2 md:col-span-2">
+                  <MapPin className="w-4 h-4 text-gray-500" />
+                  <span className="font-medium">Address:</span> {selectedPatient.address}
                 </div>
-              </div>
+              )}
+              {selectedPatient.emergency_contact && (
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-red-500" />
+                  <span className="font-medium">Emergency:</span> {selectedPatient.emergency_contact}
+                </div>
+              )}
+              {selectedPatient.medical_history && (
+                <div className="md:col-span-3">
+                  <span className="font-medium">Medical History:</span>
+                  <p className="text-gray-600 mt-1">{selectedPatient.medical_history}</p>
+                </div>
+              )}
+              {selectedPatient.allergies && (
+                <div className="md:col-span-3">
+                  <span className="font-medium text-red-600">Allergies:</span>
+                  <p className="text-red-600 mt-1">{selectedPatient.allergies}</p>
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* Reason */}
-        <div className="space-y-2">
+        {/* Reason for Visit */}
+        <div className="space-y-3">
           <label htmlFor="reason" className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <FileText className="w-4 h-4 text-green-600" />
+            <FileText className="w-4 h-4 text-orange-600" />
             Reason for Visit
           </label>
           <textarea
@@ -457,24 +480,101 @@ const AppointmentForm = ({ appointmentId, onClose, onAppointmentSaved }) => {
             name="reason"
             value={formData.reason}
             onChange={handleChange}
-            rows={3}
+            rows={4}
             placeholder="Describe the reason for this appointment..."
             className="w-full px-4 py-3 border-2 border-blue-200/50 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-400 bg-gradient-to-r from-white/90 to-blue-50/90 backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:shadow-blue-100/30 resize-none"
           />
         </div>
 
-        {/* Error Display */}
-        {errors.general && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-            <div className="flex items-center gap-2 text-red-700">
-              <AlertCircle className="w-5 h-5" />
-              <p>{errors.general}</p>
+        {/* Patient Details Section */}
+        {selectedPatient && (
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <User className="w-5 h-5 text-blue-600" />
+              Selected Patient Details
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-gray-500" />
+                <span className="font-medium">Name:</span> {selectedPatient.name}
+              </div>
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-gray-500" />
+                <span className="font-medium">Email:</span> {selectedPatient.email}
+              </div>
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-gray-500" />
+                <span className="font-medium">Phone:</span> {selectedPatient.phone}
+              </div>
+              <div className="flex items-center gap-2">
+                <UserCheck className="w-4 h-4 text-gray-500" />
+                <span className="font-medium">Gender:</span> {selectedPatient.gender}
+              </div>
+              {selectedPatient.blood_type && (
+                <div className="flex items-center gap-2">
+                  <Heart className="w-4 h-4 text-red-500" />
+                  <span className="font-medium">Blood Type:</span> {selectedPatient.blood_type}
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-gray-500" />
+                <span className="font-medium">DOB:</span> {new Date(selectedPatient.date_of_birth).toLocaleDateString()}
+              </div>
+              {selectedPatient.address && (
+                <div className="flex items-center gap-2 md:col-span-2">
+                  <MapPin className="w-4 h-4 text-gray-500" />
+                  <span className="font-medium">Address:</span> {selectedPatient.address}
+                </div>
+              )}
+              {selectedPatient.emergency_contact && (
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-red-500" />
+                  <span className="font-medium">Emergency:</span> {selectedPatient.emergency_contact}
+                </div>
+              )}
+              {selectedPatient.medical_history && (
+                <div className="md:col-span-3">
+                  <span className="font-medium">Medical History:</span>
+                  <p className="text-gray-600 mt-1">{selectedPatient.medical_history}</p>
+                </div>
+              )}
+              {selectedPatient.allergies && (
+                <div className="md:col-span-3">
+                  <span className="font-medium text-red-600">Allergies:</span>
+                  <p className="text-red-600 mt-1">{selectedPatient.allergies}</p>
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* Submit Button */}
-        <div className="flex justify-end pt-6 border-t border-blue-200/30">
+        {/* Reason for Visit */}
+        <div className="space-y-3">
+          <label htmlFor="reason" className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+            <FileText className="w-4 h-4 text-orange-600" />
+            Reason for Visit
+          </label>
+          <textarea
+            id="reason"
+            name="reason"
+            value={formData.reason}
+            onChange={handleChange}
+            rows={4}
+            placeholder="Describe the reason for this appointment..."
+            className="w-full px-4 py-3 border-2 border-blue-200/50 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-400 bg-gradient-to-r from-white/90 to-blue-50/90 backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:shadow-blue-100/30 resize-none"
+          />
+        </div>
+
+        {/* Form Actions */}
+        <div className="flex justify-end space-x-4 pt-8 border-t border-blue-100/50">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-xl hover:shadow-lg hover:shadow-gray-200/50 hover:scale-105 transition-all duration-300 font-semibold"
+          >
+            <X className="w-4 h-4" />
+            Cancel
+          </button>
           <button
             type="submit"
             disabled={loading}

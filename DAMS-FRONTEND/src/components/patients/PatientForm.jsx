@@ -135,8 +135,15 @@ const PatientForm = ({ isOpen, onClose, onPatientAdded, patient = null }) => {
         };
 
         try {
-          await appointmentService.create(appointmentData);
-          console.log('Appointment created successfully');
+          const appointmentResponse = await appointmentService.create(appointmentData);
+          console.log('✅ Appointment created successfully:', appointmentResponse);
+          
+          // Dispatch appointment created event to notify other components
+          window.dispatchEvent(new CustomEvent('appointmentCreated', { 
+            detail: { appointment: appointmentResponse.data || appointmentResponse } 
+          }));
+          console.log('📡 PatientForm: appointmentCreated event dispatched');
+          
         } catch (appointmentError) {
           console.error('Error creating appointment:', appointmentError);
           // Don't fail the entire process if appointment creation fails
@@ -144,6 +151,13 @@ const PatientForm = ({ isOpen, onClose, onPatientAdded, patient = null }) => {
       }
 
       setSuccess(true);
+      
+      // Notify other components that a patient was added/updated
+      console.log('📡 PatientForm: Dispatching patientUpdated event with data:', patientResponse.data || patientResponse);
+      window.dispatchEvent(new CustomEvent('patientUpdated', { 
+        detail: { patient: patientResponse.data || patientResponse } 
+      }));
+      console.log('✅ PatientForm: patientUpdated event dispatched successfully');
       
       // Call parent callback to refresh patient list
       if (onPatientAdded) {
@@ -202,6 +216,9 @@ const PatientForm = ({ isOpen, onClose, onPatientAdded, patient = null }) => {
           <div className="mx-6 mt-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg flex items-center gap-2">
             <Save className="h-5 w-5" />
             Patient {patient ? 'updated' : 'created'} successfully!
+            {formData.doctor_id && formData.preferred_appointment_date && (
+              <span className="ml-2">✅ Appointment also scheduled!</span>
+            )}
           </div>
         )}
 

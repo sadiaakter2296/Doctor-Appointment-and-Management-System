@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Real-time Patient Sync</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        input, select { padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 4px; }
+        .patient-list { max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🏥 DAMS Real-time Patient Sync Test</h1>
+    <p>This page tests the real-time synchronization between patient creation and appointment forms</p>
+    
+    <div class="section">
+        <h3>📋 Current Patients</h3>
+        <button onclick="loadPatients()">Refresh Patient List</button>
+        <div id="patientList" class="patient-list">Loading...</div>
+    </div>
+    
+    <div class="section">
+        <h3>➕ Add New Patient (Simulated)</h3>
+        <div>
+            <input type="text" id="patientName" placeholder="Patient Name" value="Test Patient">
+            <input type="email" id="patientEmail" placeholder="Email" value="test@example.com">
+            <input type="tel" id="patientPhone" placeholder="Phone" value="1234567890">
+            <select id="patientGender">
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+            </select>
+            <input type="date" id="patientDOB" value="1990-01-01">
+            <br><br>
+            <button onclick="createPatient()">Create Patient</button>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h3>🔄 Event Testing</h3>
+        <button onclick="triggerPatientUpdateEvent()">Trigger Patient Update Event</button>
+        <button onclick="setupEventListener()">Setup Event Listener</button>
+        <button onclick="testEventBroadcast()">Test Event Broadcast</button>
+    </div>
+    
+    <div class="section">
+        <h3>🚀 Quick Test Scenarios</h3>
+        <button onclick="runFullSyncTest()">Run Full Sync Test</button>
+        <button onclick="runEventChainTest()">Test Event Chain</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        let eventListenerActive = false;
+        let currentPatients = [];
+
+        function addResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${type}`;
+            resultDiv.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            resultsDiv.insertBefore(resultDiv, resultsDiv.firstChild);
+        }
+
+        async function loadPatients() {
+            try {
+                const response = await fetch('http://localhost:8000/api/patients');
+                if (response.ok) {
+                    const result = await response.json();
+                    currentPatients = result.data || result;
+                    
+                    const listDiv = document.getElementById('patientList');
+                    if (currentPatients.length === 0) {
+                        listDiv.innerHTML = '<em>No patients found</em>';
+                    } else {
+                        listDiv.innerHTML = currentPatients.map(patient => 
+                            `<div>👤 <strong>${patient.name}</strong> (ID: ${patient.id}) - ${patient.email} - ${patient.phone}</div>`
+                        ).join('');
+                    }
+                    
+                    addResult(`✅ Loaded ${currentPatients.length} patients from API`, 'success');
+                } else {
+                    addResult(`❌ Failed to load patients: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Error loading patients: ${error.message}`, 'error');
+            }
+        }
+
+        async function createPatient() {
+            const patientData = {
+                name: document.getElementById('patientName').value,
+                email: document.getElementById('patientEmail').value,
+                phone: document.getElementById('patientPhone').value,
+                gender: document.getElementById('patientGender').value,
+                date_of_birth: document.getElementById('patientDOB').value
+            };
+
+            try {
+                const response = await fetch('http://localhost:8000/api/patients', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(patientData)
+                });
+
+                if (response.ok) {
+                    const newPatient = await response.json();
+                    addResult(`✅ Patient created: ${patientData.name} (ID: ${newPatient.id || 'unknown'})`, 'success');
+                    
+                    // Simulate the event that PatientForm would dispatch
+                    window.dispatchEvent(new CustomEvent('patientUpdated', { 
+                        detail: { patient: newPatient } 
+                    }));
+                    addResult(`📡 Dispatched 'patientUpdated' event`, 'info');
+                    
+                    // Reload the patient list to show the new patient
+                    setTimeout(() => loadPatients(), 500);
+                } else {
+                    const error = await response.text();
+                    addResult(`❌ Failed to create patient: ${response.status} - ${error}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Error creating patient: ${error.message}`, 'error');
+            }
+        }
+
+        function setupEventListener() {
+            if (eventListenerActive) {
+                addResult(`⚠️ Event listener already active`, 'info');
+                return;
+            }
+
+            window.addEventListener('patientUpdated', function(event) {
+                addResult(`🔔 Received 'patientUpdated' event: ${JSON.stringify(event.detail)}`, 'success');
+            });
+
+            eventListenerActive = true;
+            addResult(`✅ Event listener setup complete`, 'success');
+        }
+
+        function triggerPatientUpdateEvent() {
+            const testEvent = new CustomEvent('patientUpdated', { 
+                detail: { 
+                    patient: { 
+                        id: 999, 
+                        name: 'Test Event Patient', 
+                        email: 'event@test.com' 
+                    } 
+                } 
+            });
+            
+            window.dispatchEvent(testEvent);
+            addResult(`📡 Manually triggered 'patientUpdated' event`, 'info');
+        }
+
+        function testEventBroadcast() {
+            // Test if events are working at all
+            window.addEventListener('testEvent', function(event) {
+                addResult(`🔔 Test event received: ${event.detail.message}`, 'success');
+            }, { once: true });
+
+            window.dispatchEvent(new CustomEvent('testEvent', { 
+                detail: { message: 'Event system is working!' } 
+            }));
+            addResult(`📡 Test event dispatched`, 'info');
+        }
+
+        async function runFullSyncTest() {
+            addResult(`🚀 Starting full sync test...`, 'info');
+            
+            // 1. Setup event listener
+            setupEventListener();
+            
+            // 2. Load current patients
+            await loadPatients();
+            const initialCount = currentPatients.length;
+            
+            // 3. Create a new patient
+            document.getElementById('patientName').value = `Test Patient ${Date.now()}`;
+            document.getElementById('patientEmail').value = `test${Date.now()}@example.com`;
+            await createPatient();
+            
+            // 4. Verify the patient was added
+            setTimeout(async () => {
+                await loadPatients();
+                const newCount = currentPatients.length;
+                
+                if (newCount > initialCount) {
+                    addResult(`✅ Full sync test PASSED: Patient count increased from ${initialCount} to ${newCount}`, 'success');
+                } else {
+                    addResult(`❌ Full sync test FAILED: Patient count did not increase (${initialCount} -> ${newCount})`, 'error');
+                }
+            }, 1000);
+        }
+
+        function runEventChainTest() {
+            addResult(`🔗 Testing event chain...`, 'info');
+            
+            let eventReceived = false;
+            const testListener = function(event) {
+                eventReceived = true;
+                addResult(`✅ Event chain test PASSED: Event received and handled`, 'success');
+            };
+            
+            window.addEventListener('patientUpdated', testListener, { once: true });
+            
+            // Dispatch the event
+            window.dispatchEvent(new CustomEvent('patientUpdated', { 
+                detail: { patient: { id: 999, name: 'Chain Test' } } 
+            }));
+            
+            // Check if event was received
+            setTimeout(() => {
+                if (!eventReceived) {
+                    addResult(`❌ Event chain test FAILED: Event not received`, 'error');
+                }
+            }, 100);
+        }
+
+        // Auto-load patients on page load
+        window.addEventListener('load', function() {
+            loadPatients();
+            addResult(`🌟 Test page loaded - Ready to test real-time patient sync!`, 'info');
+        });
+    </script>
+</body>
+</html>
