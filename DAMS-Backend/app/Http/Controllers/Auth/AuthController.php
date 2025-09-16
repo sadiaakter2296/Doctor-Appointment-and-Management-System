@@ -14,40 +14,59 @@ class AuthController extends Controller
 {
     public function register(Request $request)
     {
+        // Log the incoming request data for debugging
+        \Log::info('Registration attempt:', $request->all());
+        
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
         ]);
+        
         if ($validator->fails()) {
+            \Log::error('Registration validation failed:', $validator->errors()->toArray());
             return response()->json([
                 'status' => 'error',
                 'message' => $validator->errors()
             ], 422);
         }
-        $user = new User();
-        $user->name = $request->name;
-        $user->email = $request->email;
-        $user->password = Hash::make($request->password);
-        $user->save();
+        
+        try {
+            $user = new User();
+            $user->name = $request->name;
+            $user->email = $request->email;
+            $user->password = Hash::make($request->password);
+            $user->save();
 
-        // Generate a simple token for authentication
-        $token = Str::random(60);
-        $user->remember_token = $token;
-        $user->save();
+            \Log::info('User created successfully:', ['id' => $user->id, 'email' => $user->email]);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'User registered successfully',
-            'data' => [
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                ],
-                'token' => $token
-            ]
-        ], 201);
+            // Generate a simple token for authentication
+            $token = Str::random(60);
+            $user->remember_token = $token;
+            $user->save();
+
+            \Log::info('Registration successful for user:', ['id' => $user->id, 'email' => $user->email]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'User registered successfully',
+                'data' => [
+                    'user' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                    ],
+                    'token' => $token
+                ]
+            ], 201);
+            
+        } catch (\Exception $e) {
+            \Log::error('Registration failed with exception:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Registration failed: ' . $e->getMessage()
+            ], 500);
+        }
 
     }
 

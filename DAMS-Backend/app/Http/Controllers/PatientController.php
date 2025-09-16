@@ -15,10 +15,14 @@ class PatientController extends Controller
     public function index(): JsonResponse
     {
         try {
-            $patients = Patient::orderBy('created_at', 'desc')->get();
-            return response()->json($patients);
+            $patients = Patient::with('doctor')->orderBy('created_at', 'desc')->get();
+            return response()->json([
+                'status' => 'success',
+                'data' => $patients
+            ]);
         } catch (\Exception $e) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Error fetching patients',
                 'error' => $e->getMessage()
             ], 500);
@@ -45,14 +49,20 @@ class PatientController extends Controller
                 'medical_history' => 'nullable|string',
                 'allergies' => 'nullable|string',
                 'insurance_provider' => 'nullable|string|max:255',
-                'insurance_policy_number' => 'nullable|string|max:255'
+                'insurance_policy_number' => 'nullable|string|max:255',
+                'doctor_id' => 'nullable|exists:doctors,id',
+                'booking_reason' => 'nullable|string',
+                'preferred_appointment_date' => 'nullable|date',
+                'appointment_status' => 'sometimes|in:Pending,Confirmed,Completed,Cancelled'
             ]);
 
             $patient = Patient::create($validatedData);
+            $patient->load('doctor');
 
             return response()->json([
+                'status' => 'success',
                 'message' => 'Patient created successfully',
-                'patient' => $patient
+                'data' => $patient
             ], 201);
 
         } catch (ValidationException $e) {
@@ -74,9 +84,13 @@ class PatientController extends Controller
     public function show(Patient $patient): JsonResponse
     {
         try {
-            return response()->json($patient->load('appointments'));
+            return response()->json([
+                'status' => 'success',
+                'data' => $patient->load(['appointments', 'doctor'])
+            ]);
         } catch (\Exception $e) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Error fetching patient',
                 'error' => $e->getMessage()
             ], 500);
@@ -103,14 +117,20 @@ class PatientController extends Controller
                 'medical_history' => 'nullable|string',
                 'allergies' => 'nullable|string',
                 'insurance_provider' => 'nullable|string|max:255',
-                'insurance_policy_number' => 'nullable|string|max:255'
+                'insurance_policy_number' => 'nullable|string|max:255',
+                'doctor_id' => 'nullable|exists:doctors,id',
+                'booking_reason' => 'nullable|string',
+                'preferred_appointment_date' => 'nullable|date',
+                'appointment_status' => 'sometimes|in:Pending,Confirmed,Completed,Cancelled'
             ]);
 
             $patient->update($validatedData);
+            $patient->load('doctor');
 
             return response()->json([
+                'status' => 'success',
                 'message' => 'Patient updated successfully',
-                'patient' => $patient
+                'data' => $patient
             ]);
 
         } catch (ValidationException $e) {

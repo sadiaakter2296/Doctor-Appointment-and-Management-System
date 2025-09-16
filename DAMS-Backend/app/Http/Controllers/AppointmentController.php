@@ -24,6 +24,7 @@ class AppointmentController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'doctor_id' => 'required|exists:doctors,id',
+            'patient_id' => 'nullable|exists:patients,id',
             'patient_name' => 'required|string|max:255',
             'patient_email' => 'required|email|max:255',
             'patient_phone' => 'required|string|max:20',

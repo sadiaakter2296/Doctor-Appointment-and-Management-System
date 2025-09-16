@@ -23,16 +23,27 @@ class Patient extends Model
         'medical_history',
         'allergies',
         'insurance_provider',
-        'insurance_policy_number'
+        'insurance_policy_number',
+        'doctor_id',
+        'booking_reason',
+        'preferred_appointment_date',
+        'appointment_status'
     ];
 
     protected $casts = [
         'date_of_birth' => 'date',
+        'preferred_appointment_date' => 'datetime',
     ];
 
     // Relationship with appointments
     public function appointments()
     {
         return $this->hasMany(Appointment::class);
+    }
+
+    // Relationship with doctor
+    public function doctor()
+    {
+        return $this->belongsTo(Doctor::class);
     }
 }

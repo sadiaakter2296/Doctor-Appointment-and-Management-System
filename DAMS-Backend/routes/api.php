@@ -7,9 +7,8 @@ use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\PatientController;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+// Update user endpoint to work with our token system
+Route::get('/user', [AuthController::class, 'user']);
 
 // Auth routes
 Route::post('/register', [AuthController::class, 'register']);
