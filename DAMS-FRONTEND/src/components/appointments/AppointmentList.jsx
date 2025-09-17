@@ -333,25 +333,12 @@ const AppointmentList = () => {
                         </select>
                       </div>
                       <div className="flex gap-2 opacity-100 group-hover:opacity-100 transition-opacity duration-300">
-                        <button
-                          onClick={() => handleEdit(appointment.id)}
-                          className="p-3 bg-gradient-to-br from-green-500 to-green-600 text-white hover:shadow-lg hover:shadow-green-200/50 hover:scale-110 transition-all duration-300 rounded-xl"
-                          title="Edit Appointment"
-                        >
-                          <Edit className="w-5 h-5" />
-                        </button>
                         <button 
+                          onClick={() => handleView(appointment)}
                           className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-lg hover:shadow-blue-200/50 hover:scale-110 transition-all duration-300 rounded-xl"
-                          title="View Details"
+                          title="View Patient Details"
                         >
                           <Eye className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(appointment.id)}
-                          className="p-3 bg-gradient-to-br from-red-500 to-red-600 text-white hover:shadow-lg hover:shadow-red-200/50 hover:scale-110 transition-all duration-300 rounded-xl"
-                          title="Delete Appointment"
-                        >
-                          <Trash2 className="w-5 h-5" />
                         </button>
                       </div>
                     </div>

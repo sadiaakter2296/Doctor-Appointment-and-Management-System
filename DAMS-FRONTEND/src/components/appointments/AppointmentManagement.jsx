@@ -1,10 +1,14 @@
 ﻿import React, { useState, useEffect } from "react";
 import { User, Phone, Mail, Calendar, Clock, Eye, Edit, Trash2 } from "lucide-react";
+import PatientDetailsModal from "../patients/PatientDetailsModal";
 
 const AppointmentManagement = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [viewingPatient, setViewingPatient] = useState(null);
+  const [viewingAppointment, setViewingAppointment] = useState(null);
+  const [showPatientDetails, setShowPatientDetails] = useState(false);
 
   useEffect(() => {
     fetchAppointments();
@@ -152,6 +156,25 @@ const AppointmentManagement = () => {
         setError("Failed to cancel appointment");
       }
     }
+  };
+
+  const handleView = (appointment) => {
+    console.log('👁️ Viewing patient details for appointment:', appointment.id);
+    setViewingPatient(appointment.patient);
+    setViewingAppointment(appointment);
+    setShowPatientDetails(true);
+  };
+
+  const handleEdit = (appointment) => {
+    console.log('✏️ Edit functionality for appointment:', appointment.id);
+    // For now, just show an alert. You can implement edit modal later
+    alert(`Edit functionality for ${appointment.patient ? appointment.patient.name : appointment.patient_name}'s appointment will be implemented here.`);
+  };
+
+  const handleClosePatientDetails = () => {
+    setShowPatientDetails(false);
+    setViewingPatient(null);
+    setViewingAppointment(null);
   };
 
   if (loading) {
@@ -306,18 +329,12 @@ const AppointmentManagement = () => {
                     </td>
                     <td className="px-6 py-6 whitespace-nowrap">
                       <div className="flex space-x-2">
-                        <button className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-200" title="View Details">
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button className="p-2 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-200" title="Edit">
-                          <Edit className="w-4 h-4" />
-                        </button>
                         <button 
-                          onClick={() => handleDelete(appointment.id)}
-                          className="p-2 bg-gradient-to-br from-red-500 to-red-600 text-white rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-200" 
-                          title="Delete"
+                          onClick={() => handleView(appointment)}
+                          className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-200" 
+                          title="View Patient Details"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Eye className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -328,6 +345,14 @@ const AppointmentManagement = () => {
           </div>
         </div>
       )}
+
+      {/* Patient Details Modal */}
+      <PatientDetailsModal
+        patient={viewingPatient}
+        appointment={viewingAppointment}
+        isOpen={showPatientDetails}
+        onClose={handleClosePatientDetails}
+      />
     </div>
   );
 };

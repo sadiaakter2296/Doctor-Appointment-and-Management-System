@@ -48,7 +48,8 @@ export const ApiStatusProvider = ({ children }) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-      const response = await fetch('http://localhost:3001/api/health', {
+      // Use the patients endpoint as a health check since /api/health doesn't exist
+      const response = await fetch('http://localhost:8000/api/patients', {
         method: 'GET',
         signal: controller.signal,
         headers: { 'Content-Type': 'application/json' }
