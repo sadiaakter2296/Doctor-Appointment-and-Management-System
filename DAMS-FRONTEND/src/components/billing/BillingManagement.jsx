@@ -32,8 +32,9 @@ import {
   Printer,
   Trash2
 } from 'lucide-react';
-import InvoiceForm from './InvoiceForm';
+import InvoiceFormNew from './InvoiceFormNew';
 import InvoiceDetails from './InvoiceDetails';
+import BillingService from '../../api/billingService';
 
 const revenueMetrics = [
   {
@@ -170,7 +171,64 @@ const BillingManagement = () => {
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [showInvoiceDetails, setShowInvoiceDetails] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
-  const [invoices, setInvoices] = useState(invoicesData);
+  const [invoices, setInvoices] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load invoices from database
+  useEffect(() => {
+    loadInvoices();
+    setAnimateIn(true);
+  }, []);
+
+  const loadInvoices = async () => {
+    setLoading(true);
+    try {
+      const result = await BillingService.getAllBillings();
+      if (result.success) {
+        // Transform database billings to match component structure
+        const transformedInvoices = (result.data.data || result.data).map(billing => ({
+          id: billing.id,
+          invoiceNumber: billing.invoice_number,
+          patient: billing.patient_name,
+          patientId: billing.patient_id?.toString() || 'Unknown',
+          date: new Date(billing.invoice_date).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric' 
+          }),
+          dueDate: new Date(billing.due_date).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric' 
+          }),
+          amount: parseFloat(billing.total_amount),
+          paymentMethod: billing.payment_status === 'paid' ? 'Paid' : 'Pending',
+          status: billing.payment_status === 'paid' ? 'Paid' : 
+                  billing.payment_status === 'pending' ? 'Pending' : 'Overdue',
+          statusColor: billing.payment_status === 'paid' ? 'green' : 
+                       billing.payment_status === 'pending' ? 'orange' : 'red',
+          paidDate: billing.paid_at ? new Date(billing.paid_at).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric' 
+          }) : null,
+          items: billing.items?.length || 1,
+          doctor: billing.doctor_name || 'Unknown Doctor',
+          priority: 'medium', // Default priority
+          services: billing.items?.map(item => item.service) || ['Consultation'],
+          description: billing.notes || 'Medical consultation and treatment'
+        }));
+        
+        setInvoices(transformedInvoices);
+      } else {
+        console.error('Failed to load invoices:', result.error);
+      }
+    } catch (error) {
+      console.error('Error loading invoices:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Calculate revenue statistics dynamically
   const totalRevenue = invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
@@ -321,32 +379,13 @@ Description: ${invoice.description}
   };
 
   // Handle saving invoice (add or edit)
-  const handleSaveInvoice = (invoiceData) => {
-    if (editingInvoice) {
-      // Update existing invoice
-      setInvoices(invoices.map(inv =>
-        inv.id === editingInvoice.id
-          ? { ...editingInvoice, ...invoiceData }
-          : inv
-      ));
-    } else {
-      // Add new invoice
-      const newInvoice = {
-        ...invoiceData,
-        id: Math.max(...invoices.map(inv => inv.id)) + 1,
-        invoiceNumber: `INV-2025-${String(Math.max(...invoices.map(inv => inv.id)) + 1).padStart(3, '0')}`,
-        date: new Date().toLocaleDateString('en-GB', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric'
-        }),
-        items: invoiceData.services?.length || 1,
-        priority: 'medium'
-      };
-      setInvoices([...invoices, newInvoice]);
-    }
+  const handleSaveInvoice = async (invoiceData) => {
+    // Close the form immediately for better UX
     setShowInvoiceForm(false);
     setEditingInvoice(null);
+    
+    // Refresh the invoices list from database
+    await loadInvoices();
   };
 
   // Handle export all invoices
@@ -698,8 +737,14 @@ Description: ${invoice.description}
       </div>
 
       {/* Invoices Grid */}
-      <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
-        {filteredInvoices.map((invoice, idx) => {
+      {loading ? (
+        <div className="text-center py-16">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-gray-600">Loading invoices...</p>
+        </div>
+      ) : (
+        <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
+          {filteredInvoices.map((invoice, idx) => {
           const statusConfig = getStatusConfig(invoice.status);
           const StatusIcon = statusConfig.icon;
 
@@ -907,13 +952,14 @@ Description: ${invoice.description}
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
 
       {/* Invoice Form Modal */}
       {showInvoiceForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
-            <InvoiceForm
+            <InvoiceFormNew
               invoice={editingInvoice}
               onSave={handleSaveInvoice}
               onClose={() => {

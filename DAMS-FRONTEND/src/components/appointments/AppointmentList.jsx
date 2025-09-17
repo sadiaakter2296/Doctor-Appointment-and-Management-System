@@ -20,7 +20,8 @@ import {
   CalendarPlus,
   Mail,
   Heart,
-  UserCheck
+  UserCheck,
+  Receipt
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import Card from '../common/Card';
@@ -194,6 +195,28 @@ const AppointmentList = () => {
     setEditingAppointment(null);
   };
 
+  const handleCreateInvoice = (appointment) => {
+    // Navigate to billing page with appointment data
+    // We can use query parameters or state to pass appointment data
+    const appointmentData = {
+      appointmentId: appointment.id,
+      patientName: appointment.patient_name,
+      patientEmail: appointment.patient_email,
+      patientPhone: appointment.patient_phone,
+      doctorName: appointment.doctor?.name || 'Unknown Doctor',
+      appointmentDate: appointment.appointment_date,
+      reason: appointment.reason
+    };
+    
+    // Store in sessionStorage for the billing form
+    sessionStorage.setItem('appointmentForBilling', JSON.stringify(appointmentData));
+    
+    // Show success message
+    alert(`Creating invoice for ${appointment.patient_name}. Please navigate to the Billing section.`);
+    
+    console.log('Creating invoice for appointment:', appointmentData);
+  };
+
   const handleAppointmentSaved = (savedAppointment) => {
     console.log('Appointment saved, refreshing list...'); // Debug log
     fetchAppointments(); // Refresh the appointments list
@@ -339,6 +362,27 @@ const AppointmentList = () => {
                           title="View Patient Details"
                         >
                           <Eye className="w-5 h-5" />
+                        </button>
+                        <button 
+                          onClick={() => handleCreateInvoice(appointment)}
+                          className="p-3 bg-gradient-to-br from-green-500 to-green-600 text-white hover:shadow-lg hover:shadow-green-200/50 hover:scale-110 transition-all duration-300 rounded-xl"
+                          title="Create Invoice"
+                        >
+                          <Receipt className="w-5 h-5" />
+                        </button>
+                        <button 
+                          onClick={() => handleEdit(appointment.id)}
+                          className="p-3 bg-gradient-to-br from-amber-500 to-amber-600 text-white hover:shadow-lg hover:shadow-amber-200/50 hover:scale-110 transition-all duration-300 rounded-xl"
+                          title="Edit Appointment"
+                        >
+                          <Edit className="w-5 h-5" />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(appointment.id)}
+                          className="p-3 bg-gradient-to-br from-red-500 to-red-600 text-white hover:shadow-lg hover:shadow-red-200/50 hover:scale-110 transition-all duration-300 rounded-xl"
+                          title="Delete Appointment"
+                        >
+                          <Trash2 className="w-5 h-5" />
                         </button>
                       </div>
                     </div>

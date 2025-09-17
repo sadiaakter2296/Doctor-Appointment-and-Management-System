@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   User,
   Calendar,
@@ -14,57 +14,127 @@ import {
   Mail,
   MapPin,
   CreditCard,
-  Calculator,
-  CheckCircle,
-  AlertTriangle
+  Calculator
 } from 'lucide-react';
 
-const InvoiceForm = ({ onClose, invoice = null }) => {
+const InvoiceForm = ({ onSubmit, onCancel, initialData }) => {
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.patientName) newErrors.patientName = 'Patient name is required';
+    if (!formData.patientId) newErrors.patientId = 'Patient ID is required';
+    if (!formData.invoiceDate) newErrors.invoiceDate = 'Invoice date is required';
+    if (!formData.dueDate) newErrors.dueDate = 'Due date is required';
+    if (formData.items.length === 0) newErrors.items = 'At least one item is required';
+    if (formData.items.some(item => !item.service || !item.rate || item.rate <= 0)) {
+      newErrors.items = 'All items must have a service and valid rate';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  AlertTriangle,
+  Eye,
+  Users,
+  Stethoscope,
+  Clock
+} from 'lucide-react';
+import BillingService from '../../api/billingService';
+
+const InvoiceForm = ({ onClose, invoice = null, appointmentData = null }) => {
   const [formData, setFormData] = useState({
-    patientId: invoice?.patientId || '',
-    patientName: invoice?.patientName || '',
-    patientEmail: invoice?.patientEmail || '',
-    patientPhone: invoice?.patientPhone || '',
-    patientAddress: invoice?.patientAddress || '',
-    doctorId: invoice?.doctorId || '',
-    doctorName: invoice?.doctorName || '',
-    invoiceDate: invoice?.invoiceDate || new Date().toISOString().split('T')[0],
-    dueDate: invoice?.dueDate || '',
+    patientId: invoice?.patient_id || appointmentData?.patient_id || '',
+    patientName: invoice?.patient_name || appointmentData?.patient_name || '',
+    patientEmail: invoice?.patient_email || appointmentData?.patient_email || '',
+    patientPhone: invoice?.patient_phone || appointmentData?.patient_phone || '',
+    patientAddress: invoice?.patient_address || appointmentData?.patient_address || '',
+    doctorId: invoice?.doctor_id || appointmentData?.doctor_id || '',
+    doctorName: invoice?.doctor_name || appointmentData?.doctor_name || '',
+    appointmentId: invoice?.appointment_id || appointmentData?.id || '',
+    invoiceDate: invoice?.invoice_date || new Date().toISOString().split('T')[0],
+    dueDate: invoice?.due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     items: invoice?.items || [
-      { service: '', description: '', quantity: 1, rate: 0, amount: 0 }
+      { service: 'Consultation', description: 'General consultation', quantity: 1, rate: 500, amount: 500 }
     ],
-    subtotal: invoice?.subtotal || 0,
-    tax: invoice?.tax || 0,
-    discount: invoice?.discount || 0,
-    total: invoice?.total || 0,
+    subtotal: invoice?.subtotal || 500,
+    taxAmount: invoice?.tax_amount || 0,
+    discountAmount: invoice?.discount_amount || 0,
+    totalAmount: invoice?.total_amount || 500,
+    status: invoice?.status || 'draft',
+    paymentStatus: invoice?.payment_status || 'pending',
     notes: invoice?.notes || '',
-    paymentTerms: invoice?.paymentTerms || '30 days'
+    paymentTerms: invoice?.payment_terms || '30 days'
   });
 
   const [errors, setErrors] = useState({});
   const [showPatientSearch, setShowPatientSearch] = useState(false);
   const [showDoctorSearch, setShowDoctorSearch] = useState(false);
+  const [showAppointmentSearch, setShowAppointmentSearch] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [animateIn, setAnimateIn] = useState(false);
+  
+  // Data for dropdowns
+  const [patients, setPatients] = useState([]);
+  const [doctors, setDoctors] = useState([]);
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState({
+    patients: false,
+    doctors: false,
+    appointments: false
+  });
 
-  // Animation on mount
-  React.useEffect(() => {
+  // Load data on component mount
+  useEffect(() => {
     setAnimateIn(true);
+    loadInitialData();
   }, []);
 
-  // Mock data for search
-  const patients = [
-    { id: 'P001', name: 'Sarah Johnson', email: 'sarah@email.com', phone: '+8801712345678', address: 'Dhaka, Bangladesh' },
-    { id: 'P002', name: 'Michael Chen', email: 'michael@email.com', phone: '+8801987654321', address: 'Chittagong, Bangladesh' },
-    { id: 'P003', name: 'Emma Davis', email: 'emma@email.com', phone: '+8801555666777', address: 'Sylhet, Bangladesh' }
-  ];
+  // Calculate totals when items change
+  useEffect(() => {
+    calculateTotals();
+  }, [formData.items, formData.taxAmount, formData.discountAmount]);
 
-  const doctors = [
-    { id: 'D001', name: 'Dr. Ahmad Rahman', specialty: 'Cardiology' },
-    { id: 'D002', name: 'Dr. Fatima Ali', specialty: 'Surgery' },
-    { id: 'D003', name: 'Dr. Hassan Khan', specialty: 'Pediatrics' }
-  ];
+  const loadInitialData = async () => {
+    setLoading(prev => ({ ...prev, patients: true, doctors: true, appointments: true }));
+
+    try {
+      // Load patients
+      const patientsResult = await BillingService.getPatients();
+      if (patientsResult.success) {
+        setPatients(patientsResult.data);
+      }
+
+      // Load doctors
+      const doctorsResult = await BillingService.getDoctors();
+      if (doctorsResult.success) {
+        setDoctors(doctorsResult.data);
+      }
+
+      // Load appointments
+      const appointmentsResult = await BillingService.getAppointments();
+      if (appointmentsResult.success) {
+        setAppointments(appointmentsResult.data);
+      }
+    } catch (error) {
+      console.error('Error loading initial data:', error);
+    } finally {
+      setLoading({ patients: false, doctors: false, appointments: false });
+    }
+  };
+
+  const calculateTotals = () => {
+    const subtotal = formData.items.reduce((sum, item) => {
+      return sum + (item.quantity * item.rate);
+    }, 0);
+
+    const total = subtotal + (formData.taxAmount || 0) - (formData.discountAmount || 0);
+
+    setFormData(prev => ({
+      ...prev,
+      subtotal,
+      totalAmount: total
+    }));
+  };
 
   const services = [
     'Consultation',
@@ -76,7 +146,9 @@ const InvoiceForm = ({ onClose, invoice = null }) => {
     'Physical Therapy',
     'Dental Treatment',
     'Eye Examination',
-    'Vaccination'
+    'Vaccination',
+    'Emergency Care',
+    'Follow-up Visit'
   ];
 
   const handleInputChange = (field, value) => {
@@ -148,9 +220,9 @@ const InvoiceForm = ({ onClose, invoice = null }) => {
       ...prev,
       patientId: patient.id,
       patientName: patient.name,
-      patientEmail: patient.email,
-      patientPhone: patient.phone,
-      patientAddress: patient.address
+      patientEmail: patient.email || '',
+      patientPhone: patient.phone || '',
+      patientAddress: patient.address || ''
     }));
     setShowPatientSearch(false);
   };
@@ -159,9 +231,23 @@ const InvoiceForm = ({ onClose, invoice = null }) => {
     setFormData(prev => ({
       ...prev,
       doctorId: doctor.id,
-      doctorName: doctor.name
+      doctorName: doctor.name || `Dr. ${doctor.first_name} ${doctor.last_name}`
     }));
     setShowDoctorSearch(false);
+  };
+
+  const selectAppointment = (appointment) => {
+    setFormData(prev => ({
+      ...prev,
+      appointmentId: appointment.id,
+      patientId: appointment.patient?.id || appointment.patient_id,
+      patientName: appointment.patient?.name || appointment.patient_name,
+      patientEmail: appointment.patient?.email || appointment.patient_email || '',
+      patientPhone: appointment.patient?.phone || appointment.patient_phone || '',
+      doctorId: appointment.doctor?.id || appointment.doctor_id,
+      doctorName: appointment.doctor?.name || appointment.doctor_name || ''
+    }));
+    setShowAppointmentSearch(false);
   };
 
   const validateForm = () => {
@@ -177,17 +263,64 @@ const InvoiceForm = ({ onClose, invoice = null }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validateForm()) {
-      setIsSubmitting(true);
-      
-      // Simulate API call
-      setTimeout(() => {
-        console.log('Form submitted:', formData);
-        setIsSubmitting(false);
-        onClose?.();
-      }, 2000);
+    if (!validateForm()) return;
+
+    setIsSubmitting(true);
+    
+    try {
+      // Prepare data for API
+      const billingData = {
+        patient_id: formData.patientId,
+        appointment_id: formData.appointmentId || null,
+        doctor_id: formData.doctorId || null,
+        patient_name: formData.patientName,
+        patient_email: formData.patientEmail,
+        patient_phone: formData.patientPhone,
+        patient_address: formData.patientAddress,
+        doctor_name: formData.doctorName,
+        invoice_date: formData.invoiceDate,
+        due_date: formData.dueDate,
+        items: formData.items.map(item => ({
+          service: item.service,
+          description: item.description || '',
+          quantity: parseFloat(item.quantity) || 1,
+          rate: parseFloat(item.rate) || 0,
+          amount: parseFloat(item.quantity || 1) * parseFloat(item.rate || 0)
+        })),
+        subtotal: parseFloat(formData.subtotal) || 0,
+        tax_amount: parseFloat(formData.taxAmount) || 0,
+        discount_amount: parseFloat(formData.discountAmount) || 0,
+        total_amount: parseFloat(formData.totalAmount) || 0,
+        status: formData.status || 'draft',
+        payment_status: formData.paymentStatus || 'pending',
+        notes: formData.notes || '',
+        payment_terms: formData.paymentTerms || '30 days'
+      };
+
+      let result;
+      if (invoice) {
+        // Update existing billing
+        result = await BillingService.updateBilling(invoice.id, billingData);
+      } else {
+        // Create new billing
+        result = await BillingService.createBilling(billingData);
+      }
+
+      if (result.success) {
+        console.log('✅ Billing saved successfully:', result.data);
+        // Show success message or toast here
+        onClose?.(result.data); // Pass the created/updated billing data back
+      } else {
+        console.error('❌ Failed to save billing:', result.error);
+        setErrors({ general: result.error || 'Failed to save billing' });
+      }
+    } catch (error) {
+      console.error('❌ Error submitting form:', error);
+      setErrors({ general: error.message || 'An unexpected error occurred' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -240,55 +373,117 @@ const InvoiceForm = ({ onClose, invoice = null }) => {
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Patient & Doctor Information */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Patient Section */}
+            <div className="grid grid-cols-1 gap-8">
+              {/* Appointment Selection */}
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-2xl blur"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-2xl blur"></div>
                 <div className="relative bg-white/70 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl p-6">
                   <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <User className="w-5 h-5 text-blue-600" />
-                    Patient Information
+                    <Clock className="w-5 h-5 text-purple-600" />
+                    Link to Appointment (Optional)
                   </h3>
                   
-                  <div className="space-y-4">
+                  <div className="relative">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Select Appointment
+                    </label>
                     <div className="relative">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Patient Name *
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={formData.patientName}
-                          onChange={(e) => handleInputChange('patientName', e.target.value)}
-                          onFocus={() => setShowPatientSearch(true)}
-                          className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300 ${errors.patientName ? 'border-red-300' : 'border-white/20'}`}
-                          placeholder="Search or enter patient name"
-                        />
-                        <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      </div>
-                      {errors.patientName && (
-                        <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                          <AlertTriangle className="w-4 h-4" />
-                          {errors.patientName}
-                        </p>
-                      )}
-                      
-                      {/* Patient Search Dropdown */}
-                      {showPatientSearch && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-white/20 shadow-xl z-10 max-h-48 overflow-y-auto">
-                          {patients.map(patient => (
-                            <div
-                              key={patient.id}
-                              onClick={() => selectPatient(patient)}
-                              className="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                            >
-                              <p className="font-medium text-gray-900">{patient.name}</p>
-                              <p className="text-sm text-gray-600">{patient.id} • {patient.email}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                      <input
+                        type="text"
+                        value={formData.appointmentId ? `Appointment #${formData.appointmentId}` : ''}
+                        onFocus={() => setShowAppointmentSearch(true)}
+                        className="w-full px-4 py-3 border border-white/20 rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-300"
+                        placeholder="Search appointments to auto-fill patient/doctor info"
+                        readOnly
+                      />
+                      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     </div>
+                    
+                    {/* Appointment Search Dropdown */}
+                    {showAppointmentSearch && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-white/20 shadow-xl z-10 max-h-48 overflow-y-auto">
+                        {loading.appointments ? (
+                          <div className="p-4 text-center text-gray-500">Loading appointments...</div>
+                        ) : appointments.length > 0 ? (
+                          appointments.map(appointment => (
+                            <div
+                              key={appointment.id}
+                              onClick={() => selectAppointment(appointment)}
+                              className="p-3 hover:bg-purple-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                            >
+                              <p className="font-medium text-gray-900">
+                                {appointment.patient?.name || appointment.patient_name} → {appointment.doctor?.name || appointment.doctor_name}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                {appointment.appointment_date} • {appointment.appointment_time}
+                              </p>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-4 text-center text-gray-500">No appointments found</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Patient and Doctor Sections */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Patient Section */}
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-2xl blur"></div>
+                  <div className="relative bg-white/70 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl p-6">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <User className="w-5 h-5 text-blue-600" />
+                      Patient Information
+                    </h3>
+                    
+                    <div className="space-y-4">
+                      <div className="relative">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Patient Name *
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={formData.patientName}
+                            onChange={(e) => handleInputChange('patientName', e.target.value)}
+                            onFocus={() => setShowPatientSearch(true)}
+                            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300 ${errors.patientName ? 'border-red-300' : 'border-white/20'}`}
+                            placeholder="Search or enter patient name"
+                          />
+                          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        </div>
+                        {errors.patientName && (
+                          <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                            <AlertTriangle className="w-4 h-4" />
+                            {errors.patientName}
+                          </p>
+                        )}
+                        
+                        {/* Patient Search Dropdown */}
+                        {showPatientSearch && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-white/20 shadow-xl z-10 max-h-48 overflow-y-auto">
+                            {loading.patients ? (
+                              <div className="p-4 text-center text-gray-500">Loading patients...</div>
+                            ) : patients.length > 0 ? (
+                              patients.map(patient => (
+                                <div
+                                  key={patient.id}
+                                  onClick={() => selectPatient(patient)}
+                                  className="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                >
+                                  <p className="font-medium text-gray-900">{patient.name}</p>
+                                  <p className="text-sm text-gray-600">{patient.email || 'No email'}</p>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="p-4 text-center text-gray-500">No patients found</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
@@ -378,16 +573,26 @@ const InvoiceForm = ({ onClose, invoice = null }) => {
                       {/* Doctor Search Dropdown */}
                       {showDoctorSearch && (
                         <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-white/20 shadow-xl z-10 max-h-48 overflow-y-auto">
-                          {doctors.map(doctor => (
-                            <div
-                              key={doctor.id}
-                              onClick={() => selectDoctor(doctor)}
-                              className="p-3 hover:bg-green-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                            >
-                              <p className="font-medium text-gray-900">{doctor.name}</p>
-                              <p className="text-sm text-gray-600">{doctor.id} • {doctor.specialty}</p>
-                            </div>
-                          ))}
+                          {loading.doctors ? (
+                            <div className="p-4 text-center text-gray-500">Loading doctors...</div>
+                          ) : doctors.length > 0 ? (
+                            doctors.map(doctor => (
+                              <div
+                                key={doctor.id}
+                                onClick={() => selectDoctor(doctor)}
+                                className="p-3 hover:bg-green-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                              >
+                                <p className="font-medium text-gray-900">
+                                  {doctor.name || `Dr. ${doctor.first_name} ${doctor.last_name}`}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  {doctor.specialty || doctor.specialization || 'General Medicine'}
+                                </p>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="p-4 text-center text-gray-500">No doctors found</div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -446,6 +651,7 @@ const InvoiceForm = ({ onClose, invoice = null }) => {
                   </div>
                 </div>
               </div>
+            </div>
             </div>
 
             {/* Services/Items */}
