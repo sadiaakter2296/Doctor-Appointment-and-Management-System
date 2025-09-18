@@ -23,9 +23,21 @@ import {
   Banknote,
   AlertCircle
 } from 'lucide-react';
+import { useNotifications } from '../../context/NotificationContext';
 
 const NotificationCenter = () => {
-  const [notifications, setNotifications] = useState([]);
+  const {
+    notifications,
+    unreadCount,
+    fetchNotifications,
+    fetchStats,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    archiveNotification,
+    setNotifications
+  } = useNotifications();
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,120 +49,76 @@ const NotificationCenter = () => {
 
   // Fetch notifications from API
   useEffect(() => {
-    fetchNotifications();
-    fetchStats();
+    let isMounted = true;
     
-    // Set up auto-refresh every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
-    
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchNotifications = async () => {
-    try {
-      const params = new URLSearchParams();
-      if (filterStatus !== 'all') params.append('status', filterStatus);
-      if (filterType !== 'all') params.append('type', filterType);
-      if (filterPriority !== 'all') params.append('priority', filterPriority);
-      if (searchTerm) params.append('search', searchTerm);
+    const loadData = async () => {
+      if (!isMounted) return;
       
-      const response = await fetch(`http://localhost:8000/api/notifications?${params}`);
-      if (response.ok) {
-        const result = await response.json();
-        setNotifications(result.data || []);
-        setError(null);
-      } else {
-        setError('Failed to fetch notifications');
+      setLoading(true);
+      try {
+        await fetchNotifications();
+        const statsData = await fetchStats();
+        if (isMounted) {
+          setStats(statsData);
+          setError(null);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError('Failed to connect to server');
+          console.error('Error loading notifications:', err);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-    } catch (err) {
-      setError('Failed to connect to server');
-      console.error('Error fetching notifications:', err);
+    };
+
+    loadData();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Remove dependencies to prevent re-fetching
+
+  const handleRefresh = async () => {
+    if (isRefreshing) return; // Prevent multiple simultaneous refreshes
+    
+    setIsRefreshing(true);
+    try {
+      await fetchNotifications();
+      const statsData = await fetchStats();
+      setStats(statsData);
+    } catch (error) {
+      console.error('Error refreshing:', error);
     } finally {
-      setLoading(false);
       setIsRefreshing(false);
     }
   };
 
-  const fetchStats = async () => {
-    try {
-      const response = await fetch('http://localhost:8000/api/notifications-stats');
-      if (response.ok) {
-        const result = await response.json();
-        setStats(result.data || {});
-      }
-    } catch (err) {
-      console.error('Error fetching stats:', err);
-    }
+  const handleMarkAsRead = async (id) => {
+    await markAsRead(id);
+    const statsData = await fetchStats();
+    setStats(statsData);
   };
 
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    fetchNotifications();
-    fetchStats();
+  const handleMarkAllAsRead = async () => {
+    await markAllAsRead();
+    const statsData = await fetchStats();
+    setStats(statsData);
   };
 
-  const markAsRead = async (id) => {
-    try {
-      const response = await fetch(`http://localhost:8000/api/notifications/${id}/mark-read`, {
-        method: 'PUT'
-      });
-      if (response.ok) {
-        setNotifications(prev => 
-          prev.map(notif => 
-            notif.id === id ? { ...notif, status: 'read', read_at: new Date() } : notif
-          )
-        );
-        fetchStats();
-      }
-    } catch (err) {
-      console.error('Error marking as read:', err);
-    }
-  };
-
-  const markAllAsRead = async () => {
-    try {
-      const response = await fetch('http://localhost:8000/api/notifications/mark-all-read', {
-        method: 'PUT'
-      });
-      if (response.ok) {
-        setNotifications(prev => 
-          prev.map(notif => ({ ...notif, status: 'read', read_at: new Date() }))
-        );
-        fetchStats();
-      }
-    } catch (err) {
-      console.error('Error marking all as read:', err);
-    }
-  };
-
-  const deleteNotification = async (id) => {
+  const handleDeleteNotification = async (id) => {
     if (!window.confirm('Are you sure you want to delete this notification?')) return;
-    
-    try {
-      const response = await fetch(`http://localhost:8000/api/notifications/${id}`, {
-        method: 'DELETE'
-      });
-      if (response.ok) {
-        setNotifications(prev => prev.filter(notif => notif.id !== id));
-        fetchStats();
-      }
-    } catch (err) {
-      console.error('Error deleting notification:', err);
-    }
+    await deleteNotification(id);
+    const statsData = await fetchStats();
+    setStats(statsData);
   };
 
-  const archiveNotification = async (id) => {
-    try {
-      const response = await fetch(`http://localhost:8000/api/notifications/${id}/archive`, {
-        method: 'PUT'
-      });
-      if (response.ok) {
-        setNotifications(prev => prev.filter(notif => notif.id !== id));
-        fetchStats();
-      }
-    } catch (err) {
-      console.error('Error archiving notification:', err);
-    }
+  const handleArchiveNotification = async (id) => {
+    await archiveNotification(id);
+    const statsData = await fetchStats();
+    setStats(statsData);
   };
 
   const getNotificationIcon = (type) => {
@@ -232,7 +200,7 @@ const NotificationCenter = () => {
                 Refresh
               </button>
               <button
-                onClick={markAllAsRead}
+                onClick={handleMarkAllAsRead}
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all"
               >
                 <CheckCircle className="w-4 h-4" />
@@ -402,7 +370,7 @@ const NotificationCenter = () => {
                         <div className="flex items-center gap-2 flex-shrink-0">
                           {isUnread && (
                             <button
-                              onClick={() => markAsRead(notification.id)}
+                              onClick={() => handleMarkAsRead(notification.id)}
                               className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                               title="Mark as read"
                             >
@@ -410,14 +378,14 @@ const NotificationCenter = () => {
                             </button>
                           )}
                           <button
-                            onClick={() => archiveNotification(notification.id)}
+                            onClick={() => handleArchiveNotification(notification.id)}
                             className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
                             title="Archive"
                           >
                             <Archive className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => deleteNotification(notification.id)}
+                            onClick={() => handleDeleteNotification(notification.id)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Delete"
                           >

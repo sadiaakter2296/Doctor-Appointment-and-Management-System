@@ -2,16 +2,23 @@
 import React, { useState } from 'react';
 import { UserCircle, LogOut, ChevronDown, Bell, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationContext';
 import { useNavigate } from 'react-router-dom';
 
 const Header = ({ onToggleSidebar, sidebarOpen }) => {
   const { user, logout } = useAuth();
+  const { unreadCount, showNewNotificationAlert, clearNewNotificationAlert } = useNotifications();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/landing');
+  };
+
+  const handleNotificationClick = () => {
+    clearNewNotificationAlert();
+    navigate('/notifications');
   };
 
   return (
@@ -46,11 +53,43 @@ const Header = ({ onToggleSidebar, sidebarOpen }) => {
         {/* Right: Notification, user info/sign in */}
         <div className="flex items-center gap-4">
         {/* Notification bell */}
-        <button className="relative p-3 rounded-xl hover:bg-gradient-to-br hover:from-blue-50 hover:to-blue-100 focus:outline-none transition-all duration-300 hover:shadow-lg hover:shadow-blue-100/50 hover:scale-105 group">
-          <Bell className="w-5 h-5 text-blue-600 group-hover:text-blue-700 transition-colors duration-300" />
-          {/* Notification dot */}
-          <span className="absolute top-2 right-2 w-2 h-2 bg-gradient-to-br from-red-500 to-red-600 rounded-full border-2 border-white shadow-lg animate-pulse"></span>
-        </button>
+        <div className="relative">
+          <button 
+            onClick={handleNotificationClick}
+            className="relative p-3 rounded-xl hover:bg-gradient-to-br hover:from-blue-50 hover:to-blue-100 focus:outline-none transition-all duration-300 hover:shadow-lg hover:shadow-blue-100/50 hover:scale-105 group"
+          >
+            <Bell className="w-5 h-5 text-blue-600 group-hover:text-blue-700 transition-colors duration-300" />
+            {/* Notification count badge */}
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[1.25rem] h-5 bg-gradient-to-br from-red-500 to-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center px-1.5 border-2 border-white shadow-lg animate-pulse">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+            {/* Notification dot for when there are unread notifications */}
+            {unreadCount > 0 && (
+              <span className="absolute top-2 right-2 w-2 h-2 bg-gradient-to-br from-red-500 to-red-600 rounded-full border-2 border-white shadow-lg animate-pulse"></span>
+            )}
+          </button>
+          
+          {/* New notification alert popup */}
+          {showNewNotificationAlert && (
+            <div className="absolute top-full right-0 mt-2 w-64 bg-white/95 backdrop-blur-xl border border-blue-200/30 rounded-xl shadow-2xl z-50 animate-in slide-in-from-top-2 duration-200">
+              <div className="p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  <h4 className="font-semibold text-gray-800">New Notification!</h4>
+                </div>
+                <p className="text-sm text-gray-600 mb-3">You have new notifications waiting for your attention.</p>
+                <button
+                  onClick={handleNotificationClick}
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm py-2 px-4 rounded-lg hover:shadow-lg transition-all duration-300"
+                >
+                  View Notifications
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
         {/* User Info or Sign In */}
         {user ? (
           <div className="relative">

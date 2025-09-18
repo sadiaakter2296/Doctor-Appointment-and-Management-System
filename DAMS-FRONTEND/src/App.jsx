@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { AppProvider } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { ApiStatusProvider } from './services/ApiService';
 import Login from './components/auth/Login';
@@ -120,9 +121,11 @@ function App() {
       <ApiStatusProvider>
         <AppProvider>
           <AuthProvider>
-            <Router>
-              <AppContent />
-            </Router>
+            <NotificationProvider>
+              <Router>
+                <AppContent />
+              </Router>
+            </NotificationProvider>
           </AuthProvider>
         </AppProvider>
       </ApiStatusProvider>
