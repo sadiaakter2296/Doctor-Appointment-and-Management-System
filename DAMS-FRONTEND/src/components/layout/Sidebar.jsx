@@ -18,7 +18,7 @@ const navItems = [
   // { key: 'prescriptions', label: 'Prescriptions', icon: FileText, path: '/prescriptions' },
   // { key: 'inventory', label: 'Inventory', icon: Package, path: '/inventory' },
   { key: 'billing', label: 'Billing', icon: Banknote, path: '/billing' },
-  { key: 'reports', label: 'Reports', icon: BarChart2, path: '/reports' },
+  // { key: 'reports', label: 'Reports', icon: BarChart2, path: '/reports' },
   { key: 'notifications', label: 'Notifications', icon: Bell, path: '/notifications' },
   { key: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
 ];

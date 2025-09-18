@@ -9,7 +9,7 @@ import {
   Mail, 
   Phone, 
   MapPin, 
-  DollarSign,
+  Banknote,
   Star,
   Eye,
   MoreVertical 
@@ -255,8 +255,8 @@ const DoctorList = () => {
                     <span>{doctor.location}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <DollarSign className="w-4 h-4" />
-                    <span>${doctor.fee} consultation fee</span>
+                    <Banknote className="w-4 h-4" />
+                    <span>৳{doctor.fee} consultation fee</span>
                   </div>
                 </div>
 

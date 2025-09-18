@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, Mail, Phone, MapPin, GraduationCap, DollarSign, Clock, Star } from 'lucide-react';
+import { X, Save, User, Mail, Phone, MapPin, GraduationCap, Banknote, Clock, Star, BanIcon } from 'lucide-react';
 
 const DoctorForm = ({ doctor, onSave, onCancel, isEdit = false }) => {
   const [formData, setFormData] = useState({
@@ -132,7 +132,7 @@ const DoctorForm = ({ doctor, onSave, onCancel, isEdit = false }) => {
                   value={formData.name}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Dr. John Doe"
+                  placeholder="full name"
                   required
                 />
               </div>
@@ -148,7 +148,7 @@ const DoctorForm = ({ doctor, onSave, onCancel, isEdit = false }) => {
                   value={formData.email}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="doctor@example.com"
+                  placeholder="doctor@gmail.com"
                   required
                 />
               </div>
@@ -164,7 +164,7 @@ const DoctorForm = ({ doctor, onSave, onCancel, isEdit = false }) => {
                   value={formData.phone}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="+1 234 567 8900"
+                  placeholder="+088"
                   required
                 />
               </div>
@@ -226,7 +226,7 @@ const DoctorForm = ({ doctor, onSave, onCancel, isEdit = false }) => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <DollarSign className="w-4 h-4 inline mr-1" />
+                  <Banknote className="w-4 h-4 inline mr-1" />
                   Consultation Fee *
                 </label>
                 <input

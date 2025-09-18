@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Patient;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
@@ -59,8 +60,16 @@ class PatientController extends Controller
             $patient = Patient::create($validatedData);
             $patient->load('doctor');
 
+            // Create notification for new patient registration
+            try {
+                Notification::createPatientNotification('patient_registered', $patient);
+            } catch (\Exception $notificationError) {
+                // Log the error but don't fail the patient creation
+                \Log::error('Failed to create patient registration notification: ' . $notificationError->getMessage());
+            }
+
             // If appointment details are provided, create an appointment
-            if ($validatedData['doctor_id'] && $validatedData['preferred_appointment_date']) {
+            if (isset($validatedData['doctor_id']) && isset($validatedData['preferred_appointment_date']) && $validatedData['doctor_id'] && $validatedData['preferred_appointment_date']) {
                 $appointmentData = [
                     'patient_id' => $patient->id,
                     'doctor_id' => $validatedData['doctor_id'],
@@ -150,6 +159,14 @@ class PatientController extends Controller
 
             $patient->update($validatedData);
             $patient->load('doctor');
+
+            // Create notification for patient update
+            try {
+                Notification::createPatientNotification('patient_updated', $patient);
+            } catch (\Exception $notificationError) {
+                // Log the error but don't fail the patient update
+                \Log::error('Failed to create patient update notification: ' . $notificationError->getMessage());
+            }
 
             return response()->json([
                 'status' => 'success',

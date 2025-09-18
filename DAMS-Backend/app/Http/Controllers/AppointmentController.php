@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Appointment;
 use App\Models\Doctor;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
@@ -51,6 +52,15 @@ class AppointmentController extends Controller
             }
 
             $appointment = Appointment::create($request->all());
+            
+            // Create notification for new appointment
+            try {
+                Notification::createAppointmentNotification('appointment_created', $appointment->load(['doctor', 'patient']));
+            } catch (\Exception $notificationError) {
+                // Log the error but don't fail the appointment creation
+                \Log::error('Failed to create appointment notification: ' . $notificationError->getMessage());
+            }
+            
             return response()->json($appointment->load(['doctor', 'patient']), 201);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to create appointment'], 500);
@@ -97,6 +107,15 @@ class AppointmentController extends Controller
             }
 
             $appointment->update($request->all());
+            
+            // Create notification for appointment update
+            try {
+                Notification::createAppointmentNotification('appointment_updated', $appointment->load(['doctor', 'patient']));
+            } catch (\Exception $notificationError) {
+                // Log the error but don't fail the appointment update
+                \Log::error('Failed to create appointment update notification: ' . $notificationError->getMessage());
+            }
+            
             return response()->json($appointment->load(['doctor', 'patient']));
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to update appointment'], 500);
@@ -166,7 +185,18 @@ class AppointmentController extends Controller
                 return response()->json(['error' => 'Appointment not found'], 404);
             }
 
+            $oldStatus = $appointment->status;
             $appointment->update(['status' => $request->status]);
+            
+            // Create notification for status change
+            try {
+                $notificationType = 'appointment_' . $request->status;
+                Notification::createAppointmentNotification($notificationType, $appointment->load(['doctor', 'patient']));
+            } catch (\Exception $notificationError) {
+                // Log the error but don't fail the status update
+                \Log::error('Failed to create status change notification: ' . $notificationError->getMessage());
+            }
+            
             return response()->json($appointment->load(['doctor', 'patient']));
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to update appointment status'], 500);

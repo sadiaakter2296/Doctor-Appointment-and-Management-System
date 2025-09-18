@@ -17,7 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle,
-  DollarSign,
+  Banknote,
   Languages,
   Badge
 } from 'lucide-react';

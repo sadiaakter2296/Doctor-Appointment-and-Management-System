@@ -267,7 +267,7 @@ const PatientForm = ({ isOpen, onClose, onPatientAdded, patient = null }) => {
                     className={`w-full px-3 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                       errors.email ? 'border-red-500' : ''
                     }`}
-                    placeholder="patient@example.com"
+                    placeholder="patient@gmail.com"
                   />
                   <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                 </div>
@@ -287,7 +287,7 @@ const PatientForm = ({ isOpen, onClose, onPatientAdded, patient = null }) => {
                     className={`w-full px-3 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                       errors.phone ? 'border-red-500' : ''
                     }`}
-                    placeholder="+1 (555) 123-4567"
+                    placeholder="+088"
                   />
                   <Phone className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                 </div>
@@ -408,7 +408,7 @@ const PatientForm = ({ isOpen, onClose, onPatientAdded, patient = null }) => {
                   className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                     errors.emergency_contact ? 'border-red-500' : ''
                   }`}
-                  placeholder="+1 (555) 987-6543"
+                  placeholder="+088"
                 />
                 {errors.emergency_contact && <p className="text-red-500 text-sm mt-1">{errors.emergency_contact}</p>}
               </div>

@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Search,
   Filter,
-  Grid,
-  List,
+  
   Star,
   Phone,
   Mail,
@@ -289,18 +288,8 @@ const DoctorPage = () => {
 
             {/* View Mode Toggle */}
             <div className="flex border border-gray-200 rounded-xl overflow-hidden">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-3 ${viewMode === 'grid' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'} transition-colors`}
-              >
-                <Grid className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-3 ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'} transition-colors`}
-              >
-                <List className="w-4 h-4" />
-              </button>
+             
+              
             </div>
           </div>
         </div>
@@ -385,7 +374,7 @@ const DoctorPage = () => {
                       <span className="text-sm">{doctor.experience} years exp</span>
                     </div>
                     <div className="text-blue-600 font-semibold">
-                      ${doctor.fee}
+                      ৳{doctor.fee}
                     </div>
                   </div>
                 </div>
@@ -430,7 +419,7 @@ const DoctorPage = () => {
                   <div className="flex items-center gap-6">
                     <div className="hidden md:flex items-center gap-4 text-sm text-gray-600">
                       <span>{doctor.experience} years</span>
-                      <span>${doctor.fee}</span>
+                      <span>৳{doctor.fee}</span>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         doctor.status === 'Available' ? 'bg-green-100 text-green-800' :
                         doctor.status === 'Busy' ? 'bg-yellow-100 text-yellow-800' :
@@ -541,7 +530,7 @@ const DoctorPage = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Fee:</span>
-                      <span className="font-medium text-blue-600">${showDoctorDetails.fee}</span>
+                      <span className="font-medium text-blue-600">৳{showDoctorDetails.fee}</span>
                     </div>
                   </div>
                 </div>

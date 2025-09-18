@@ -206,7 +206,7 @@ const AppointmentModal = ({ isOpen, onClose, doctor }) => {
               <p><strong>Name:</strong> Dr. {doctor?.name}</p>
               <p><strong>Specialty:</strong> {doctor?.specialty}</p>
               <p><strong>Experience:</strong> {doctor?.experience} years</p>
-              <p><strong>Consultation Fee:</strong> ${doctor?.fee}</p>
+              <p><strong>Consultation Fee:</strong> ৳{doctor?.fee}</p>
               <p><strong>Location:</strong> {doctor?.location}</p>
             </div>
 
@@ -289,7 +289,7 @@ const AppointmentModal = ({ isOpen, onClose, doctor }) => {
                   onChange={handleInputChange}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="patient@example.com"
+                  placeholder="patient@gmail.com"
                 />
               </div>
 
@@ -304,7 +304,7 @@ const AppointmentModal = ({ isOpen, onClose, doctor }) => {
                   onChange={handleInputChange}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="+1 (555) 123-4567"
+                  placeholder="number only"
                 />
               </div>
 

@@ -1,334 +1,437 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
+  Bell, 
   Calendar, 
-  AlertTriangle, 
-  Banknote, 
+  User, 
+  Clock, 
   CheckCircle, 
-  Trash2,
-  Clock,
-  AlertCircle,
-  Bell,
+  AlertTriangle,
+  Info,
+  X,
   Search,
+  Filter,
   MoreVertical,
   Eye,
-  Star,
-  Zap,
+  Trash2,
+  Archive,
+  RefreshCw,
+  BellRing,
+  UserPlus,
+  CalendarCheck,
+  CalendarX,
   Activity,
-  Layers,
-  Shield,
-  Users,
-  MessageSquare
+  Banknote,
+  AlertCircle
 } from 'lucide-react';
 
 const NotificationCenter = () => {
-  const [selectedTab, setSelectedTab] = useState('all');
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showSearch, setShowSearch] = useState(false);
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterType, setFilterType] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
-  const [isLoading, setIsLoading] = useState(false);
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: 'appointment',
-      icon: Calendar,
-      title: 'Upcoming Appointment',
-      message: 'Dr. Sarah Khan has an appointment with Mr. Ahmed in 30 minutes',
-      dateTime: 'Aug 19, 2025 2:30 PM',
-      priority: 'High',
-      status: 'Urgent',
-      isRead: false,
-      category: 'appointment',
-      avatar: '👨‍⚕️',
-      actionRequired: true,
-      starred: false,
-      tags: ['appointment', 'urgent']
-    },
-    {
-      id: 2,
-      type: 'inventory',
-      icon: AlertTriangle,
-      title: 'Critical Stock Alert',
-      message: 'Paracetamol stock has reached minimum threshold (5 units remaining)',
-      dateTime: 'Aug 19, 2025 1:45 PM',
-      priority: 'High',
-      status: 'Critical',
-      isRead: false,
-      category: 'inventory',
-      avatar: '💊',
-      actionRequired: true,
-      starred: true,
-      tags: ['inventory', 'critical', 'reorder']
+  const [stats, setStats] = useState({});
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Fetch notifications from API
+  useEffect(() => {
+    fetchNotifications();
+    fetchStats();
+    
+    // Set up auto-refresh every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchNotifications = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (filterStatus !== 'all') params.append('status', filterStatus);
+      if (filterType !== 'all') params.append('type', filterType);
+      if (filterPriority !== 'all') params.append('priority', filterPriority);
+      if (searchTerm) params.append('search', searchTerm);
+      
+      const response = await fetch(`http://localhost:8000/api/notifications?${params}`);
+      if (response.ok) {
+        const result = await response.json();
+        setNotifications(result.data || []);
+        setError(null);
+      } else {
+        setError('Failed to fetch notifications');
+      }
+    } catch (err) {
+      setError('Failed to connect to server');
+      console.error('Error fetching notifications:', err);
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
     }
-  ]);
-
-  const markAsRead = (id) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === id 
-          ? { ...notification, isRead: true }
-          : notification
-      )
-    );
   };
 
-  const deleteNotification = (id) => {
-    setNotifications(prev => prev.filter(notification => notification.id !== id));
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/notifications-stats');
+      if (response.ok) {
+        const result = await response.json();
+        setStats(result.data || {});
+      }
+    } catch (err) {
+      console.error('Error fetching stats:', err);
+    }
   };
 
-  const markAllAsRead = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setNotifications(prev => 
-        prev.map(notification => ({ ...notification, isRead: true }))
-      );
-      setIsLoading(false);
-    }, 800);
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchNotifications();
+    fetchStats();
   };
 
-  // Additional handler functions for missing buttons
-  const handleMoreOptions = (notificationId) => {
-    console.log(`More options clicked for notification: ${notificationId}`);
-    // Could open a dropdown menu with additional options like:
-    // - Archive notification
-    // - Snooze notification
-    // - Mark as important
-    // - Share notification
+  const markAsRead = async (id) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/notifications/${id}/mark-read`, {
+        method: 'PUT'
+      });
+      if (response.ok) {
+        setNotifications(prev => 
+          prev.map(notif => 
+            notif.id === id ? { ...notif, status: 'read', read_at: new Date() } : notif
+          )
+        );
+        fetchStats();
+      }
+    } catch (err) {
+      console.error('Error marking as read:', err);
+    }
   };
 
-  const handleStarNotification = (notificationId) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === notificationId 
-          ? { ...notification, starred: !notification.starred }
-          : notification
-      )
-    );
-    console.log(`Star toggled for notification: ${notificationId}`);
+  const markAllAsRead = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/notifications/mark-all-read', {
+        method: 'PUT'
+      });
+      if (response.ok) {
+        setNotifications(prev => 
+          prev.map(notif => ({ ...notif, status: 'read', read_at: new Date() }))
+        );
+        fetchStats();
+      }
+    } catch (err) {
+      console.error('Error marking all as read:', err);
+    }
   };
 
-  const handleClearSearch = () => {
-    setSearchTerm('');
-    console.log('Search cleared');
+  const deleteNotification = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this notification?')) return;
+    
+    try {
+      const response = await fetch(`http://localhost:8000/api/notifications/${id}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        setNotifications(prev => prev.filter(notif => notif.id !== id));
+        fetchStats();
+      }
+    } catch (err) {
+      console.error('Error deleting notification:', err);
+    }
   };
 
-  const handlePriorityFilter = (priority) => {
-    setFilterPriority(priority);
-    console.log(`Priority filter changed to: ${priority}`);
+  const archiveNotification = async (id) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/notifications/${id}/archive`, {
+        method: 'PUT'
+      });
+      if (response.ok) {
+        setNotifications(prev => prev.filter(notif => notif.id !== id));
+        fetchStats();
+      }
+    } catch (err) {
+      console.error('Error archiving notification:', err);
+    }
   };
 
-  const handleArchiveNotification = (notificationId) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === notificationId 
-          ? { ...notification, archived: true }
-          : notification
-      )
-    );
-    console.log(`Notification archived: ${notificationId}`);
+  const getNotificationIcon = (type) => {
+    const iconMap = {
+      'appointment_created': CalendarCheck,
+      'appointment_updated': Calendar,
+      'appointment_cancelled': CalendarX,
+      'appointment_confirmed': CheckCircle,
+      'appointment_completed': Activity,
+      'patient_registered': UserPlus,
+      'patient_updated': User,
+      'billing_created': Banknote,
+      'system_alert': AlertTriangle,
+      'default': Bell
+    };
+    return iconMap[type] || iconMap.default;
   };
 
-  const handleSnoozeNotification = (notificationId) => {
-    console.log(`Notification snoozed: ${notificationId}`);
-    // Could implement snooze functionality
+  const getPriorityColor = (priority) => {
+    const colorMap = {
+      'urgent': 'from-red-500 to-red-600',
+      'high': 'from-orange-500 to-orange-600',
+      'medium': 'from-blue-500 to-blue-600',
+      'low': 'from-gray-500 to-gray-600'
+    };
+    return colorMap[priority] || colorMap.medium;
+  };
+
+  const getStatusBadge = (status) => {
+    const statusStyles = {
+      'unread': 'bg-blue-100 text-blue-800 border-blue-200',
+      'read': 'bg-gray-100 text-gray-600 border-gray-200',
+      'archived': 'bg-yellow-100 text-yellow-800 border-yellow-200'
+    };
+    return statusStyles[status] || statusStyles.unread;
   };
 
   const filteredNotifications = notifications.filter(notification => {
     const matchesSearch = notification.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       notification.message.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesPriority = filterPriority === 'all' || notification.priority === filterPriority;
-    return matchesSearch && matchesPriority && !notification.archived;
+    return matchesSearch;
   });
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg">Loading notifications...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="bg-white/80 backdrop-blur-2xl rounded-3xl border border-white/30 shadow-2xl p-8">
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 p-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 rounded-2xl shadow-xl">
-                <Bell className="w-8 h-8 text-white" />
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl">
+                <BellRing className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent mb-2">
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   Notification Center
                 </h1>
-                <p className="text-gray-600 text-lg font-medium">Manage all your clinic notifications with ease</p>
+                <p className="text-gray-600">Stay updated with real-time clinic activities</p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <button
-                onClick={() => setShowSearch(!showSearch)}
-                className="p-3 rounded-2xl bg-white/80 text-gray-600 hover:bg-gray-100/80 transition-all duration-300"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
-                <Search className="w-5 h-5" />
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Refresh
               </button>
-              
-             
               <button
-                disabled={isLoading}
                 onClick={markAllAsRead}
-                className="bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 text-white px-8 py-4 rounded-2xl font-bold transition-all duration-300 shadow-xl hover:shadow-2xl disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all"
               >
-                <div className="flex items-center gap-3">
-                  {isLoading ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  ) : (
-                    <CheckCircle className="w-5 h-5" />
-                  )}
-                  {isLoading ? 'Processing...' : 'Mark All Read'}
-                </div>
+                <CheckCircle className="w-4 h-4" />
+                Mark All Read
               </button>
             </div>
           </div>
-          
-          {/* Search Bar */}
-          {showSearch && (
-            <div className="mt-6">
-              <div className="flex items-center gap-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search notifications..."
-                    className="w-full pl-12 pr-6 py-4 bg-white/90 border-2 border-white/30 rounded-2xl focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all duration-300 shadow-lg text-gray-700 font-medium"
-                  />
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+            <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-xl">
+              <div className="flex items-center gap-3">
+                <Bell className="w-5 h-5 text-blue-600" />
+                <div>
+                  <p className="text-sm text-blue-600 font-medium">Total</p>
+                  <p className="text-2xl font-bold text-blue-900">{stats.total || 0}</p>
                 </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-r from-orange-50 to-orange-100 p-4 rounded-xl">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-orange-600" />
+                <div>
+                  <p className="text-sm text-orange-600 font-medium">Unread</p>
+                  <p className="text-2xl font-bold text-orange-900">{stats.unread || 0}</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-xl">
+              <div className="flex items-center gap-3">
+                <Calendar className="w-5 h-5 text-green-600" />
+                <div>
+                  <p className="text-sm text-green-600 font-medium">Today</p>
+                  <p className="text-2xl font-bold text-green-900">{stats.today || 0}</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-r from-red-50 to-red-100 p-4 rounded-xl">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+                <div>
+                  <p className="text-sm text-red-600 font-medium">Urgent</p>
+                  <p className="text-2xl font-bold text-red-900">{stats.priority_stats?.urgent || 0}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 p-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Search notifications..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Status</option>
+              <option value="unread">Unread</option>
+              <option value="read">Read</option>
+              <option value="archived">Archived</option>
+            </select>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Types</option>
+              <option value="appointment_created">Appointments</option>
+              <option value="patient_registered">Patients</option>
+              <option value="system_alert">System</option>
+            </select>
+            <select
+              value={filterPriority}
+              onChange={(e) => setFilterPriority(e.target.value)}
+              className="px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Priority</option>
+              <option value="urgent">Urgent</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Notifications List */}
+        <div className="space-y-4">
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+              <div className="flex items-center gap-2 text-red-700">
+                <AlertTriangle className="w-5 h-5" />
+                <p>{error}</p>
               </div>
             </div>
           )}
-        </div>
 
-        {/* Notification List */}
-        <div className="space-y-6">
-          {filteredNotifications.map((notification) => {
-            const IconComponent = notification.icon;
-            
-            return (
-              <div 
-                key={notification.id}
-                className="bg-white/80 backdrop-blur-2xl rounded-3xl border-2 border-white/30 shadow-2xl p-8 hover:shadow-3xl transition-all duration-500"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-6 flex-1">
+          {filteredNotifications.length === 0 ? (
+            <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 p-12 text-center">
+              <Bell className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-600 mb-2">No notifications found</h3>
+              <p className="text-gray-500">
+                {searchTerm ? 'Try adjusting your search or filters' : 'All caught up! No new notifications.'}
+              </p>
+            </div>
+          ) : (
+            filteredNotifications.map((notification) => {
+              const IconComponent = getNotificationIcon(notification.type);
+              const isUnread = notification.status === 'unread';
+              
+              return (
+                <div
+                  key={notification.id}
+                  className={`bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 p-6 transition-all hover:shadow-2xl ${
+                    isUnread ? 'border-l-4 border-l-blue-500' : ''
+                  }`}
+                >
+                  <div className="flex items-start gap-4">
                     {/* Icon */}
-                    <div className="relative">
-                      <div className="bg-gradient-to-r from-blue-500 to-indigo-500 p-4 rounded-2xl shadow-xl">
-                        <IconComponent className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="absolute -bottom-2 -right-2 text-2xl">
-                        {notification.avatar}
-                      </div>
+                    <div className={`p-3 rounded-xl bg-gradient-to-r ${getPriorityColor(notification.priority)} text-white flex-shrink-0`}>
+                      <IconComponent className="w-6 h-6" />
                     </div>
-                    
+
                     {/* Content */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-3 flex-wrap">
-                        <h3 className="font-black text-xl text-gray-900">
-                          {notification.title}
-                        </h3>
-                        
-                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-600 border border-red-200">
-                          {notification.priority}
-                        </span>
-                        
-                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg">
-                          {notification.status}
-                        </span>
-                        
-                        {!notification.isRead && (
-                          <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg animate-pulse">
-                            NEW
-                          </span>
-                        )}
-                      </div>
-                      
-                      <p className="text-lg leading-relaxed mb-4 text-gray-800 font-medium">
-                        {notification.message}
-                      </p>
-                      
-                      <div className="flex items-center gap-4 text-sm text-gray-500">
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          {notification.dateTime}
-                        </span>
-                        {notification.actionRequired && (
-                          <span className="flex items-center gap-1 text-purple-600 font-medium">
-                            <Activity className="w-4 h-4" />
-                            Requires Action
-                          </span>
-                        )}
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className={`text-lg font-semibold ${isUnread ? 'text-gray-900' : 'text-gray-700'}`}>
+                              {notification.title}
+                            </h3>
+                            {isUnread && (
+                              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                            )}
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(notification.status)}`}>
+                              {notification.priority}
+                            </span>
+                          </div>
+                          <p className="text-gray-600 mb-3 leading-relaxed">
+                            {notification.message}
+                          </p>
+                          <div className="flex items-center gap-4 text-sm text-gray-500">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-4 h-4" />
+                              {new Date(notification.created_at).toLocaleString()}
+                            </span>
+                            {notification.patient && (
+                              <span className="flex items-center gap-1">
+                                <User className="w-4 h-4" />
+                                {notification.patient.name}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {isUnread && (
+                            <button
+                              onClick={() => markAsRead(notification.id)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Mark as read"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => archiveNotification(notification.id)}
+                            className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                            title="Archive"
+                          >
+                            <Archive className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => deleteNotification(notification.id)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  
-                  {/* Actions */}
-                  <div className="flex items-center gap-3 ml-4">
-                    {!notification.isRead && (
-                      <button
-                        onClick={() => markAsRead(notification.id)}
-                        className="p-3 rounded-xl bg-blue-100 text-blue-600 hover:bg-blue-200 transition-all duration-300 hover:scale-110"
-                      >
-                        <Eye className="w-5 h-5" />
-                      </button>
-                    )}
-                    
-                    <button
-                      onClick={() => deleteNotification(notification.id)}
-                      className="p-3 rounded-xl bg-red-100 text-red-600 hover:bg-red-200 transition-all duration-300 hover:scale-110"
-                      title="Delete notification"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-
-                    <button 
-                      onClick={() => handleArchiveNotification(notification.id)}
-                      className="p-3 rounded-xl bg-orange-100 text-orange-600 hover:bg-orange-200 transition-all duration-300 hover:scale-110"
-                      title="Archive notification"
-                    >
-                      <Activity className="w-5 h-5" />
-                    </button>
-
-                    
-                    <button 
-                      onClick={() => handleMoreOptions(notification.id)}
-                      className="p-3 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-300 hover:scale-110"
-                      title="More options"
-                    >
-                      <MoreVertical className="w-5 h-5" />
-                    </button>
-                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
-
-        {/* Empty State */}
-        {filteredNotifications.length === 0 && (
-          <div className="bg-white/80 backdrop-blur-2xl rounded-3xl border border-white/30 shadow-2xl p-16 text-center">
-            <div className="bg-gradient-to-r from-gray-600 to-slate-600 p-6 rounded-3xl shadow-xl mx-auto w-24 h-24 flex items-center justify-center mb-6">
-              <Bell className="w-12 h-12 text-white" />
-            </div>
-            <h3 className="text-2xl font-black text-gray-700 mb-4">No Notifications Found</h3>
-            <p className="text-gray-500 text-lg mb-6">
-              {searchTerm 
-                ? 'No notifications match your search criteria.' 
-                : 'You\'re all caught up! No new notifications at the moment.'
-              }
-            </p>
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-2xl font-bold transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105"
-              >
-                Clear Search
-              </button>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\BillingController;
+use App\Http\Controllers\NotificationController;
 
 // Update user endpoint to work with our token system
 Route::get('/user', [AuthController::class, 'user']);
@@ -28,6 +29,16 @@ Route::apiResource('appointments', AppointmentController::class);
 Route::get('appointments/doctor/{doctorId}', [AppointmentController::class, 'getByDoctor']);
 Route::get('appointments/patient/{patientEmail}', [AppointmentController::class, 'getByPatient']);
 Route::put('appointments/{id}/status', [AppointmentController::class, 'updateStatus']);
+
+// Notification routes
+Route::apiResource('notifications', NotificationController::class)->except(['update']);
+Route::put('notifications/{id}/mark-read', [NotificationController::class, 'markAsRead']);
+Route::put('notifications/{id}/mark-unread', [NotificationController::class, 'markAsUnread']);
+Route::put('notifications/{id}/archive', [NotificationController::class, 'archive']);
+Route::put('notifications/{id}/unarchive', [NotificationController::class, 'unarchive']);
+Route::put('notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+Route::delete('notifications/bulk-delete', [NotificationController::class, 'bulkDelete']);
+Route::get('notifications-stats', [NotificationController::class, 'stats']);
 
 // Billing routes
 Route::apiResource('billings', BillingController::class);
