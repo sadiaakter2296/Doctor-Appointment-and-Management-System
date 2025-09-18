@@ -40,7 +40,8 @@ import {
   Contrast,
   Type,
   Layout,
-  Layers
+  Layers,
+  X
 } from 'lucide-react';
 
 const Settings = () => {
@@ -52,6 +53,7 @@ const Settings = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredCard, setHoveredCard] = useState(null);
   const [tabTransition, setTabTransition] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [notifications, setNotifications] = useState({
     email: true,
     sms: false,
@@ -74,43 +76,160 @@ const Settings = () => {
 
   useEffect(() => {
     setAnimateIn(true);
+    loadSettingsFromStorage();
   }, []);
 
-  const handleInputChange = (field, value) => {
-    setSettings(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleNotificationChange = (field, value) => {
-    setNotifications(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleSaveChanges = () => {
-    setIsLoading(true);
-    // Simulate API call with enhanced feedback
-    setTimeout(() => {
-      setIsLoading(false);
-      setShowSuccessNotification(true);
+  // Load settings from localStorage on component mount
+  const loadSettingsFromStorage = () => {
+    try {
+      const savedSettings = localStorage.getItem('clinicSettings');
+      const savedNotifications = localStorage.getItem('notificationSettings');
+      const draftSettings = sessionStorage.getItem('draftSettings');
+      const draftNotifications = sessionStorage.getItem('draftNotifications');
       
-      // Enhanced success notification with animation
+      // Load saved settings first
+      if (savedSettings) {
+        const parsedSettings = JSON.parse(savedSettings);
+        setSettings(prev => ({ ...prev, ...parsedSettings }));
+      }
+      
+      if (savedNotifications) {
+        const parsedNotifications = JSON.parse(savedNotifications);
+        setNotifications(prev => ({ ...prev, ...parsedNotifications }));
+      }
+      
+      // Then load draft settings (unsaved changes) if they exist
+      if (draftSettings) {
+        const parsedDraftSettings = JSON.parse(draftSettings);
+        setSettings(prev => ({ ...prev, ...parsedDraftSettings }));
+      }
+      
+      if (draftNotifications) {
+        const parsedDraftNotifications = JSON.parse(draftNotifications);
+        setNotifications(prev => ({ ...prev, ...parsedDraftNotifications }));
+      }
+    } catch (error) {
+      console.error('Error loading settings from storage:', error);
+    }
+  };
+
+  // Save settings to localStorage
+  const saveSettingsToStorage = () => {
+    try {
+      localStorage.setItem('clinicSettings', JSON.stringify(settings));
+      localStorage.setItem('notificationSettings', JSON.stringify(notifications));
+      
+      // Clear draft data since changes are now saved
+      sessionStorage.removeItem('draftSettings');
+      sessionStorage.removeItem('draftNotifications');
+      
+      return true;
+    } catch (error) {
+      console.error('Error saving settings to storage:', error);
+      return false;
+    }
+  };
+
+  // Validate settings before saving
+  const validateSettings = () => {
+    const errors = [];
+    
+    // Required field validation
+    if (!settings.clinicName?.trim()) errors.push('Clinic name is required');
+    if (!settings.phoneNumber?.trim()) errors.push('Phone number is required');
+    if (!settings.emailAddress?.trim()) errors.push('Email address is required');
+    if (!settings.address?.trim()) errors.push('Clinic address is required');
+    
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (settings.emailAddress && !emailRegex.test(settings.emailAddress)) {
+      errors.push('Please enter a valid email address');
+    }
+    
+    // Phone number format validation (basic)
+    const phoneRegex = /^[\+]?[0-9\-\(\)\s]+$/;
+    if (settings.phoneNumber && !phoneRegex.test(settings.phoneNumber)) {
+      errors.push('Please enter a valid phone number');
+    }
+    
+    // Website URL validation (if provided)
+    if (settings.website && settings.website.trim()) {
+      try {
+        new URL(settings.website.startsWith('http') ? settings.website : `https://${settings.website}`);
+      } catch {
+        errors.push('Please enter a valid website URL');
+      }
+    }
+    
+    return errors;
+  };
+
+  // Check if there are unsaved changes
+  const checkForUnsavedChanges = () => {
+    try {
+      const draftSettings = sessionStorage.getItem('draftSettings');
+      const draftNotifications = sessionStorage.getItem('draftNotifications');
+      const hasChanges = draftSettings || draftNotifications;
+      setHasUnsavedChanges(!!hasChanges);
+      return !!hasChanges;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  // Check for unsaved changes periodically
+  useEffect(() => {
+    const interval = setInterval(checkForUnsavedChanges, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Reset settings to default values
+  const handleResetSettings = () => {
+    if (window.confirm('Are you sure you want to reset all settings to default values? This action cannot be undone.')) {
+      const defaultSettings = {
+        clinicName: 'Medicare pro appointment and management system',
+        phoneNumber: '+8801883844096',
+        emailAddress: 'medicare@pro.com.bd',
+        website: 'www.medicarepro.com.bd',
+        timezone: 'Asia/Dhaka',
+        language: 'English',
+        address: 'Plot 456, Gulshan Avenue, Gulshan-2, Dhaka-1212, Bangladesh',
+        theme: 'light',
+        currency: 'BDT',
+        dateFormat: 'DD/MM/YYYY',
+        timeFormat: '24-hour'
+      };
+      
+      const defaultNotifications = {
+        email: true,
+        sms: false,
+        push: true,
+        sound: true
+      };
+      
+      setSettings(defaultSettings);
+      setNotifications(defaultNotifications);
+      
+      // Clear all stored data
+      localStorage.removeItem('clinicSettings');
+      localStorage.removeItem('notificationSettings');
+      sessionStorage.removeItem('draftSettings');
+      sessionStorage.removeItem('draftNotifications');
+      
+      // Show reset confirmation
       const notification = document.createElement('div');
-      notification.className = 'fixed top-4 right-4 z-50 transform transition-all duration-500 animate-bounce-in';
+      notification.className = 'fixed top-4 right-4 z-50 transform transition-all duration-500';
       notification.innerHTML = `
-        <div class="bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 text-white px-8 py-4 rounded-2xl shadow-2xl backdrop-blur-xl border border-white/20">
+        <div class="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-8 py-4 rounded-2xl shadow-2xl backdrop-blur-xl border border-white/20">
           <div class="flex items-center gap-4">
-            <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center animate-pulse">
+            <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
               <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path>
               </svg>
             </div>
             <div>
-              <div class="font-bold text-lg">Settings Saved!</div>
-              <div class="text-sm opacity-90">All changes have been applied successfully</div>
+              <div class="font-bold text-lg">Settings Reset</div>
+              <div class="text-sm opacity-90">All settings have been restored to default values</div>
             </div>
             <button onclick="this.parentElement.parentElement.parentElement.remove()" class="ml-4 text-white/80 hover:text-white transition-colors">
               <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -126,8 +245,153 @@ const Settings = () => {
         notification.style.opacity = '0';
         setTimeout(() => notification.remove(), 300);
       }, 4000);
+    }
+  };
+
+  const handleInputChange = (field, value) => {
+    setSettings(prev => {
+      const updatedSettings = {
+        ...prev,
+        [field]: value
+      };
+      // Auto-save draft changes to sessionStorage for temporary persistence
+      try {
+        sessionStorage.setItem('draftSettings', JSON.stringify(updatedSettings));
+      } catch (error) {
+        console.error('Error saving draft settings:', error);
+      }
+      return updatedSettings;
+    });
+  };
+
+  const handleNotificationChange = (field, value) => {
+    setNotifications(prev => {
+      const updatedNotifications = {
+        ...prev,
+        [field]: value
+      };
+      // Auto-save draft changes to sessionStorage for temporary persistence
+      try {
+        sessionStorage.setItem('draftNotifications', JSON.stringify(updatedNotifications));
+      } catch (error) {
+        console.error('Error saving draft notifications:', error);
+      }
+      return updatedNotifications;
+    });
+  };
+
+  const handleSaveChanges = () => {
+    // Validate settings first
+    const validationErrors = validateSettings();
+    
+    if (validationErrors.length > 0) {
+      // Show validation errors
+      const errorMessage = validationErrors.join('\n');
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 z-50 transform transition-all duration-500';
+      notification.innerHTML = `
+        <div class="bg-gradient-to-r from-red-500 via-red-600 to-red-700 text-white px-8 py-4 rounded-2xl shadow-2xl backdrop-blur-xl border border-white/20 max-w-sm">
+          <div class="flex items-start gap-4">
+            <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+              </svg>
+            </div>
+            <div class="flex-1">
+              <div class="font-bold text-lg mb-2">Validation Errors</div>
+              <div class="text-sm space-y-1">
+                ${validationErrors.map(error => `<div>• ${error}</div>`).join('')}
+              </div>
+            </div>
+            <button onclick="this.parentElement.parentElement.parentElement.remove()" class="ml-2 text-white/80 hover:text-white transition-colors flex-shrink-0">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(notification);
+      setTimeout(() => {
+        notification.style.transform = 'translateX(120%) scale(0.8)';
+        notification.style.opacity = '0';
+        setTimeout(() => notification.remove(), 300);
+      }, 6000);
+      return;
+    }
+
+    setIsLoading(true);
+    
+    // Simulate API call and save to localStorage
+    setTimeout(() => {
+      const saveSuccess = saveSettingsToStorage();
+      setIsLoading(false);
       
-      setTimeout(() => setShowSuccessNotification(false), 4500);
+      if (saveSuccess) {
+        setShowSuccessNotification(true);
+        
+        // Enhanced success notification with animation
+        const notification = document.createElement('div');
+        notification.className = 'fixed top-4 right-4 z-50 transform transition-all duration-500 animate-bounce-in';
+        notification.innerHTML = `
+          <div class="bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 text-white px-8 py-4 rounded-2xl shadow-2xl backdrop-blur-xl border border-white/20">
+            <div class="flex items-center gap-4">
+              <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center animate-pulse">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                </svg>
+              </div>
+              <div>
+                <div class="font-bold text-lg">Settings Saved Successfully!</div>
+                <div class="text-sm opacity-90">All changes have been applied and saved permanently</div>
+              </div>
+              <button onclick="this.parentElement.parentElement.parentElement.remove()" class="ml-4 text-white/80 hover:text-white transition-colors">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(notification);
+        setTimeout(() => {
+          notification.style.transform = 'translateX(120%) scale(0.8)';
+          notification.style.opacity = '0';
+          setTimeout(() => notification.remove(), 300);
+        }, 4000);
+        
+        setTimeout(() => setShowSuccessNotification(false), 4500);
+      } else {
+        // Show error notification if save failed
+        const errorNotification = document.createElement('div');
+        errorNotification.className = 'fixed top-4 right-4 z-50 transform transition-all duration-500';
+        errorNotification.innerHTML = `
+          <div class="bg-gradient-to-r from-red-500 to-red-600 text-white px-8 py-4 rounded-2xl shadow-2xl backdrop-blur-xl border border-white/20">
+            <div class="flex items-center gap-4">
+              <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                </svg>
+              </div>
+              <div>
+                <div class="font-bold text-lg">Save Failed</div>
+                <div class="text-sm opacity-90">Unable to save settings. Please try again.</div>
+              </div>
+              <button onclick="this.parentElement.parentElement.parentElement.remove()" class="ml-4 text-white/80 hover:text-white transition-colors">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(errorNotification);
+        setTimeout(() => {
+          errorNotification.style.transform = 'translateX(120%) scale(0.8)';
+          errorNotification.style.opacity = '0';
+          setTimeout(() => errorNotification.remove(), 300);
+        }, 4000);
+      }
     }, 1500);
   };
 
@@ -938,20 +1202,38 @@ const Settings = () => {
               </div>
               <div className="flex items-center gap-4">
                 <button
+                  onClick={handleResetSettings}
+                  className="relative group bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white px-6 py-4 rounded-2xl font-bold transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-gray-500 to-gray-600 rounded-2xl blur opacity-75 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="relative flex items-center gap-3">
+                    <RefreshCw className="w-5 h-5" />
+                    Reset to Default
+                  </div>
+                </button>
+                <button
                   disabled={isLoading}
                   onClick={handleSaveChanges}
-                  className="relative group bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 hover:from-blue-700 hover:via-purple-700 hover:to-cyan-700 text-white px-8 py-4 rounded-2xl font-bold transition-all duration-300 shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
+                  className={`relative group ${hasUnsavedChanges ? 'bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 hover:from-orange-700 hover:via-red-700 hover:to-pink-700 animate-pulse' : 'bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 hover:from-blue-700 hover:via-purple-700 hover:to-cyan-700'} text-white px-8 py-4 rounded-2xl font-bold transition-all duration-300 shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105`}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-75 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className={`absolute inset-0 ${hasUnsavedChanges ? 'bg-gradient-to-r from-orange-600 to-red-600' : 'bg-gradient-to-r from-blue-600 to-purple-600'} rounded-2xl blur opacity-75 group-hover:opacity-100 transition-opacity duration-300`}></div>
                   <div className="relative flex items-center gap-3">
                     {isLoading ? (
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    ) : hasUnsavedChanges ? (
+                      <AlertTriangle className="w-5 h-5" />
                     ) : (
                       <Save className="w-5 h-5" />
                     )}
-                    {isLoading ? 'Saving...' : 'Save All Changes'}
+                    {isLoading ? 'Saving...' : hasUnsavedChanges ? 'Save Unsaved Changes' : 'Save All Changes'}
                   </div>
                 </button>
+                {hasUnsavedChanges && (
+                  <div className="flex items-center gap-2 text-orange-600 animate-pulse">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                    <span className="text-sm font-medium">Unsaved changes</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

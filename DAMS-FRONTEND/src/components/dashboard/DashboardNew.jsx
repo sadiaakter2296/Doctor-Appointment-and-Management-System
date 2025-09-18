@@ -36,7 +36,7 @@ const Dashboard = () => {
   };
 
   const handleDoctorSchedule = () => {
-    navigate('/doctor/schedule');
+    navigate('/doctors');
   };
 
   const handleGenerateBill = () => {

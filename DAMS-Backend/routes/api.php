@@ -8,6 +8,7 @@ use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ReportController;
 
 // Update user endpoint to work with our token system
 Route::get('/user', [AuthController::class, 'user']);
@@ -47,3 +48,8 @@ Route::post('billings/{id}/add-payment', [BillingController::class, 'addPayment'
 Route::get('billings-statistics', [BillingController::class, 'statistics']);
 Route::get('billings/appointment/{appointmentId}', [BillingController::class, 'getByAppointment']);
 Route::post('billings/appointment/{appointmentId}', [BillingController::class, 'createFromAppointment']);
+
+// Report routes
+Route::get('reports/patients-with-billing', [ReportController::class, 'getPatientsWithBilling']);
+Route::post('reports/generate', [ReportController::class, 'generateReport']);
+Route::get('reports/recent', [ReportController::class, 'getRecentReports']);

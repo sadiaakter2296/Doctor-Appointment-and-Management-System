@@ -35,6 +35,15 @@ class Patient extends Model
         'preferred_appointment_date' => 'datetime',
     ];
 
+    // Age accessor
+    public function getAgeAttribute()
+    {
+        if (!$this->date_of_birth) {
+            return null;
+        }
+        return $this->date_of_birth->age;
+    }
+
     // Relationship with appointments
     public function appointments()
     {
@@ -45,5 +54,11 @@ class Patient extends Model
     public function doctor()
     {
         return $this->belongsTo(Doctor::class);
+    }
+
+    // Relationship with billings
+    public function billings()
+    {
+        return $this->hasMany(Billing::class);
     }
 }
