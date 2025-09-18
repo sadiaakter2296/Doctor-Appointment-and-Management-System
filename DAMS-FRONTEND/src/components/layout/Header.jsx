@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 
 const Header = ({ onToggleSidebar, sidebarOpen }) => {
   const { user, logout } = useAuth();
-  const { unreadCount, showNewNotificationAlert, clearNewNotificationAlert } = useNotifications();
+  const { unreadCount, showNewNotificationAlert, clearNewNotificationAlert, markAllAsRead } = useNotifications();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -18,6 +18,8 @@ const Header = ({ onToggleSidebar, sidebarOpen }) => {
 
   const handleNotificationClick = () => {
     clearNewNotificationAlert();
+    // Mark all notifications as read when viewing notification center
+    markAllAsRead();
     navigate('/notifications');
   };
 

@@ -36,6 +36,57 @@ const PatientForm = ({ isOpen, onClose, onPatientAdded, patient = null }) => {
   const statuses = ['Active', 'Inactive'];
   const appointmentStatuses = ['Pending', 'Confirmed', 'Completed', 'Cancelled'];
 
+  // Update form data when patient prop changes
+  useEffect(() => {
+    if (patient) {
+      setFormData({
+        name: patient.name || '',
+        email: patient.email || '',
+        phone: patient.phone || '',
+        date_of_birth: patient.date_of_birth || '',
+        gender: patient.gender || '',
+        blood_type: patient.blood_type || '',
+        address: patient.address || '',
+        emergency_contact: patient.emergency_contact || '',
+        emergency_contact_name: patient.emergency_contact_name || '',
+        status: patient.status || 'Active',
+        medical_history: patient.medical_history || '',
+        allergies: patient.allergies || '',
+        insurance_provider: patient.insurance_provider || '',
+        insurance_policy_number: patient.insurance_policy_number || '',
+        doctor_id: patient.doctor_id || '',
+        booking_reason: patient.booking_reason || '',
+        preferred_appointment_date: patient.preferred_appointment_date || '',
+        appointment_status: patient.appointment_status || 'Pending'
+      });
+    } else {
+      // Reset form for new patient
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        date_of_birth: '',
+        gender: '',
+        blood_type: '',
+        address: '',
+        emergency_contact: '',
+        emergency_contact_name: '',
+        status: 'Active',
+        medical_history: '',
+        allergies: '',
+        insurance_provider: '',
+        insurance_policy_number: '',
+        doctor_id: '',
+        booking_reason: '',
+        preferred_appointment_date: '',
+        appointment_status: 'Pending'
+      });
+    }
+    // Clear any previous errors and success state
+    setErrors({});
+    setSuccess(false);
+  }, [patient]);
+
   // Load doctors when component mounts
   useEffect(() => {
     const loadDoctors = async () => {

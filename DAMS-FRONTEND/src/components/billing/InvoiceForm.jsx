@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   User,
   Calendar,
-  DollarSign,
+  Banknote,
   FileText,
   Plus,
   Trash2,
@@ -390,37 +390,116 @@ const InvoiceForm = ({ onClose, invoice = null, appointmentData = null }) => {
                     <div className="relative">
                       <input
                         type="text"
-                        value={formData.appointmentId ? `Appointment #${formData.appointmentId}` : ''}
+                        value={formData.appointmentId ? 
+                          `Appointment #${formData.appointmentId} - ${appointments.find(a => a.id === formData.appointmentId)?.patient?.name || appointments.find(a => a.id === formData.appointmentId)?.patient_name || 'Unknown Patient'}` 
+                          : ''}
+                        onClick={() => setShowAppointmentSearch(!showAppointmentSearch)}
                         onFocus={() => setShowAppointmentSearch(true)}
-                        className="w-full px-4 py-3 border border-white/20 rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-300"
-                        placeholder="Search appointments to auto-fill patient/doctor info"
+                        className="w-full px-4 py-3 pr-10 border border-white/20 rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-300 cursor-pointer"
+                        placeholder="Click to search and select an appointment"
                         readOnly
                       />
-                      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
                     </div>
+                    
+                    {/* Selected Appointment Info */}
+                    {formData.appointmentId && (
+                      <div className="mt-2 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                        <div className="text-sm text-purple-800">
+                          <strong>Selected:</strong> Appointment #{formData.appointmentId}
+                          {(() => {
+                            const selectedAppointment = appointments.find(a => a.id === formData.appointmentId);
+                            if (selectedAppointment) {
+                              return (
+                                <div className="mt-1">
+                                  <div>Patient: {selectedAppointment.patient?.name || selectedAppointment.patient_name}</div>
+                                  <div>Doctor: {selectedAppointment.doctor?.name || selectedAppointment.doctor_name}</div>
+                                  <div>Date: {selectedAppointment.appointment_date} at {selectedAppointment.appointment_time}</div>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, appointmentId: '' }));
+                            setShowAppointmentSearch(false);
+                          }}
+                          className="mt-2 text-xs text-purple-600 hover:text-purple-800 underline"
+                        >
+                          Clear appointment
+                        </button>
+                      </div>
+                    )}
                     
                     {/* Appointment Search Dropdown */}
                     {showAppointmentSearch && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-white/20 shadow-xl z-10 max-h-48 overflow-y-auto">
-                        {loading.appointments ? (
-                          <div className="p-4 text-center text-gray-500">Loading appointments...</div>
-                        ) : appointments.length > 0 ? (
-                          appointments.map(appointment => (
-                            <div
-                              key={appointment.id}
-                              onClick={() => selectAppointment(appointment)}
-                              className="p-3 hover:bg-purple-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-white/20 shadow-xl z-[9999] max-h-64 overflow-y-auto">
+                        <div className="p-2 border-b border-gray-100">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium text-gray-700">Available Appointments</span>
+                            <button
+                              type="button"
+                              onClick={() => setShowAppointmentSearch(false)}
+                              className="text-gray-400 hover:text-gray-600 text-lg"
                             >
-                              <p className="font-medium text-gray-900">
-                                {appointment.patient?.name || appointment.patient_name} → {appointment.doctor?.name || appointment.doctor_name}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                {appointment.appointment_date} • {appointment.appointment_time}
-                              </p>
-                            </div>
-                          ))
+                              ×
+                            </button>
+                          </div>
+                        </div>
+                        {loading.appointments ? (
+                          <div className="p-4 text-center text-gray-500">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-500 mx-auto mb-2"></div>
+                            Loading appointments...
+                          </div>
+                        ) : appointments.length > 0 ? (
+                          <div className="max-h-48 overflow-y-auto">
+                            {appointments.map(appointment => (
+                              <div
+                                key={appointment.id}
+                                onClick={() => selectAppointment(appointment)}
+                                className="p-3 hover:bg-purple-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
+                              >
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <p className="font-medium text-gray-900">
+                                      Appointment #{appointment.id}
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                      <strong>Patient:</strong> {appointment.patient?.name || appointment.patient_name}
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                      <strong>Doctor:</strong> {appointment.doctor?.name || appointment.doctor_name}
+                                    </p>
+                                    <p className="text-sm text-gray-500">
+                                      {appointment.appointment_date} • {appointment.appointment_time}
+                                    </p>
+                                  </div>
+                                  <div className="ml-2">
+                                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                                      appointment.status === 'confirmed' 
+                                        ? 'bg-green-100 text-green-800'
+                                        : appointment.status === 'pending'
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : appointment.status === 'completed'
+                                        ? 'bg-blue-100 text-blue-800'
+                                        : 'bg-gray-100 text-gray-800'
+                                    }`}>
+                                      {appointment.status || 'pending'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         ) : (
-                          <div className="p-4 text-center text-gray-500">No appointments found</div>
+                          <div className="p-4 text-center text-gray-500">
+                            <Clock className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                            <p>No appointments available</p>
+                            <p className="text-xs text-gray-400 mt-1">Create an appointment first to link it to this invoice</p>
+                          </div>
                         )}
                       </div>
                     )}

@@ -553,18 +553,6 @@ const PatientReports = () => {
                   />
                 </div>
 
-                {/* Debug Info - Remove this in production */}
-                {process.env.NODE_ENV === 'development' && (
-                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm">
-                    <strong>Debug:</strong> Found {patients.length} patients, Filtered: {filteredPatients.length}
-                    {patients.length > 0 && (
-                      <div className="mt-1 text-xs text-gray-600">
-                        Patient names: {patients.map(p => p.name).join(', ')}
-                      </div>
-                    )}
-                  </div>
-                )}
-
                 {/* Patient List */}
                 <div className="space-y-3 max-h-64 overflow-y-auto">
                   {isLoadingPatients ? (

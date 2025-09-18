@@ -388,6 +388,26 @@ Description: ${invoice.description}
     await loadInvoices();
   };
 
+  // Handle deleting individual invoice
+  const handleDeleteInvoice = async (invoice) => {
+    if (window.confirm(`Are you sure you want to delete invoice for ${invoice.patient_name || invoice.patient}?`)) {
+      try {
+        const result = await BillingService.deleteBilling(invoice.id);
+        if (result.success) {
+          console.log('✅ Invoice deleted successfully');
+          // Refresh the invoices list
+          await loadInvoices();
+        } else {
+          console.error('❌ Failed to delete invoice:', result.error);
+          alert('Failed to delete invoice. Please try again.');
+        }
+      } catch (error) {
+        console.error('❌ Error deleting invoice:', error);
+        alert('An error occurred while deleting the invoice.');
+      }
+    }
+  };
+
   // Handle export all invoices
   const handleExportInvoices = () => {
     const csvContent = [
@@ -857,12 +877,12 @@ Description: ${invoice.description}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleViewInvoice(invoice);
+                          handleDeleteInvoice(invoice);
                         }}
-                        className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-3 py-2 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all duration-300 shadow-lg hover:shadow-xl group"
+                        className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-3 py-2 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all duration-300 shadow-lg hover:shadow-xl group"
                       >
-                        <Eye className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
-                        View
+                        <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
+                        Delete
                       </button>
                       <button
                         onClick={(e) => {
@@ -911,11 +931,11 @@ Description: ${invoice.description}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleViewInvoice(invoice);
+                            handleDeleteInvoice(invoice);
                           }}
-                          className="p-2 bg-blue-100 text-blue-600 hover:bg-blue-200 hover:text-blue-700 transition-colors rounded-xl group"
+                          className="p-2 bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-700 transition-colors rounded-xl group"
                         >
-                          <Eye className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
+                          <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
                         </button>
                         <button
                           onClick={(e) => {

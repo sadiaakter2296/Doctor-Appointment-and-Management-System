@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import BillingService from '../../api/billingService';
 
-const InvoiceForm = ({ onClose, invoice = null, appointmentData = null }) => {
+const InvoiceForm = ({ onClose, onSave, invoice = null, appointmentData = null }) => {
   const [formData, setFormData] = useState({
     patientId: invoice?.patient_id || appointmentData?.patient_id || '',
     patientName: invoice?.patient_name || appointmentData?.patient_name || '',
@@ -99,6 +99,22 @@ const InvoiceForm = ({ onClose, invoice = null, appointmentData = null }) => {
     calculateTotals();
   }, [formData.items, formData.taxAmount, formData.discountAmount]);
 
+  // Handle clicking outside to close appointment dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showAppointmentSearch && !event.target.closest('.appointment-dropdown-container')) {
+        setShowAppointmentSearch(false);
+      }
+    };
+
+    if (showAppointmentSearch) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showAppointmentSearch]);
+
   const loadInitialData = async () => {
     setLoading(prev => ({ ...prev, patients: true, doctors: true, appointments: true }));
 
@@ -164,15 +180,49 @@ const InvoiceForm = ({ onClose, invoice = null, appointmentData = null }) => {
   };
 
   const selectPatient = (patient) => {
+    // Find the most recent appointment for this patient to get doctor info
+    const patientAppointments = appointments.filter(appointment => 
+      (appointment.patient?.id === patient.id || 
+       appointment.patient_id === patient.id ||
+       appointment.patient?.name === patient.name ||
+       appointment.patient_name === patient.name)
+    );
+
+    // Get the most recent appointment (or any appointment if no date sorting possible)
+    let doctorInfo = {};
+    if (patientAppointments.length > 0) {
+      // Sort by date if possible, otherwise take the first one
+      const sortedAppointments = patientAppointments.sort((a, b) => {
+        const dateA = new Date(a.appointment_date || a.created_at || 0);
+        const dateB = new Date(b.appointment_date || b.created_at || 0);
+        return dateB - dateA; // Most recent first
+      });
+      
+      const recentAppointment = sortedAppointments[0];
+      doctorInfo = {
+        doctorId: recentAppointment.doctor?.id || recentAppointment.doctor_id || '',
+        doctorName: recentAppointment.doctor?.name || recentAppointment.doctor_name || '',
+        appointmentId: recentAppointment.id || ''
+      };
+    }
+
     setFormData(prev => ({
       ...prev,
       patientId: patient.id,
       patientName: patient.name,
       patientEmail: patient.email || '',
       patientPhone: patient.phone || '',
-      patientAddress: patient.address || ''
+      patientAddress: patient.address || '',
+      // Auto-populate doctor info if found
+      ...doctorInfo
     }));
+    
     setShowPatientSearch(false);
+    
+    // Show a small notification if doctor was auto-filled
+    if (doctorInfo.doctorName) {
+      console.log(`✅ Auto-filled doctor: ${doctorInfo.doctorName} based on patient's appointment`);
+    }
   };
 
   const selectDoctor = (doctor) => {
@@ -291,7 +341,16 @@ const InvoiceForm = ({ onClose, invoice = null, appointmentData = null }) => {
 
       if (result.success) {
         console.log('✅ Billing saved successfully:', result.data);
-        onClose?.(result.data); // Pass the created/updated billing data back
+        
+        // Call onSave first to refresh the parent component's data
+        if (onSave) {
+          await onSave(result.data);
+        }
+        
+        // Then close the form
+        if (onClose) {
+          onClose(result.data);
+        }
       } else {
         console.error('❌ Failed to save billing:', result.error);
         setErrors({ general: result.error || 'Failed to save billing' });
@@ -342,58 +401,7 @@ const InvoiceForm = ({ onClose, invoice = null, appointmentData = null }) => {
 
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Appointment Selection */}
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-2xl blur"></div>
-              <div className="relative bg-white/70 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl p-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-purple-600" />
-                  Link to Appointment (Optional)
-                </h3>
-                
-                <div className="relative">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Appointment
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={formData.appointmentId ? `Appointment #${formData.appointmentId}` : ''}
-                      onFocus={() => setShowAppointmentSearch(true)}
-                      className="w-full px-4 py-3 border border-white/20 rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-300"
-                      placeholder="Search appointments to auto-fill patient/doctor info"
-                      readOnly
-                    />
-                    <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  </div>
-                  
-                  {/* Appointment Search Dropdown */}
-                  {showAppointmentSearch && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-white/20 shadow-xl z-20 max-h-48 overflow-y-auto">
-                      {loading.appointments ? (
-                        <div className="p-4 text-center text-gray-500">Loading appointments...</div>
-                      ) : appointments.length > 0 ? (
-                        appointments.map(appointment => (
-                          <div
-                            key={appointment.id}
-                            onClick={() => selectAppointment(appointment)}
-                            className="p-3 hover:bg-purple-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                          >
-                            <p className="font-medium text-gray-900">
-                              {appointment.patient?.name || appointment.patient_name} → {appointment.doctor?.name || appointment.doctor_name}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              {appointment.appointment_date} • {appointment.appointment_time}
-                            </p>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="p-4 text-center text-gray-500">No appointments found</div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+            
 
             {/* Patient and Doctor Sections */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -435,16 +443,42 @@ const InvoiceForm = ({ onClose, invoice = null, appointmentData = null }) => {
                           {loading.patients ? (
                             <div className="p-4 text-center text-gray-500">Loading patients...</div>
                           ) : patients.length > 0 ? (
-                            patients.map(patient => (
-                              <div
-                                key={patient.id}
-                                onClick={() => selectPatient(patient)}
-                                className="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                              >
-                                <p className="font-medium text-gray-900">{patient.name}</p>
-                                <p className="text-sm text-gray-600">{patient.email || 'No email'}</p>
-                              </div>
-                            ))
+                            patients.map(patient => {
+                              // Find doctor info for this patient
+                              const patientAppointments = appointments.filter(appointment => 
+                                (appointment.patient?.id === patient.id || 
+                                 appointment.patient_id === patient.id ||
+                                 appointment.patient?.name === patient.name ||
+                                 appointment.patient_name === patient.name)
+                              );
+                              
+                              const recentAppointment = patientAppointments.length > 0 ? 
+                                patientAppointments.sort((a, b) => {
+                                  const dateA = new Date(a.appointment_date || a.created_at || 0);
+                                  const dateB = new Date(b.appointment_date || b.created_at || 0);
+                                  return dateB - dateA;
+                                })[0] : null;
+                              
+                              const doctorName = recentAppointment ? 
+                                (recentAppointment.doctor?.name || recentAppointment.doctor_name) : null;
+                              
+                              return (
+                                <div
+                                  key={patient.id}
+                                  onClick={() => selectPatient(patient)}
+                                  className="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                >
+                                  <p className="font-medium text-gray-900">{patient.name}</p>
+                                  <p className="text-sm text-gray-600">{patient.email || 'No email'}</p>
+                                  {doctorName && (
+                                    <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                                      <Stethoscope className="w-3 h-3" />
+                                      Will auto-fill: Dr. {doctorName}
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })
                           ) : (
                             <div className="p-4 text-center text-gray-500">No patients found</div>
                           )}
@@ -530,6 +564,16 @@ const InvoiceForm = ({ onClose, invoice = null, appointmentData = null }) => {
                         />
                         <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       </div>
+                      
+                      {/* Auto-filled indicator */}
+                      {formData.doctorName && formData.appointmentId && (
+                        <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-center gap-2 text-sm text-green-700">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span>Auto-filled from patient's appointment</span>
+                          </div>
+                        </div>
+                      )}
                       
                       {/* Doctor Search Dropdown */}
                       {showDoctorSearch && (
