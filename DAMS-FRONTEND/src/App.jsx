@@ -8,6 +8,7 @@ import { ApiStatusProvider } from './services/ApiService';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import Landing from './components/landing/Landing';
+import { HomePage } from './components/home';
 import {
   BrowserRouter as Router,
   Routes,
@@ -73,7 +74,8 @@ const AppContent = () => {
   return (
     <Routes>
       {/* Public routes (no sidebar/header) */}
-      <Route path="/" element={<Navigate to="/landing" replace />} />
+      <Route path="/" element={<HomePage />} />
+      <Route path="/home" element={<HomePage />} />
       <Route path="/landing" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -109,7 +111,7 @@ const AppContent = () => {
       <Route path="/doctor/notifications" element={<ProtectedRoute><DashboardLayout><NotificationCenter /></DashboardLayout></ProtectedRoute>} />
 
       {/* Fallback */}
-      <Route path="*" element={<Navigate to="/landing" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };

@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
 class ApiService {
   constructor() {
@@ -28,12 +28,6 @@ class ApiService {
       
       // Handle network errors
       if (!response.ok) {
-        // If it's a 500 error, provide a user-friendly message
-        if (response.status === 500) {
-          console.error('Server error (500):', await response.text());
-          throw new Error('Server is experiencing issues. Please try again later.');
-        }
-        
         // Try to parse error response
         let errorData;
         try {
@@ -42,7 +36,25 @@ class ApiService {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        const errorMessage = errorData.message || `HTTP error! status: ${response.status}`;
+        // Handle different error structures
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        
+        if (errorData.message) {
+          if (typeof errorData.message === 'object') {
+            // Validation errors object (Laravel style)
+            const errors = Object.values(errorData.message).flat();
+            errorMessage = errors.join(', ');
+          } else {
+            errorMessage = errorData.message;
+          }
+        }
+        
+        // If it's a 500 error, provide a user-friendly message
+        if (response.status === 500) {
+          console.error('Server error (500):', errorData);
+          errorMessage = 'Server is experiencing issues. Please try again later.';
+        }
+        
         throw new Error(errorMessage);
       }
 

@@ -97,13 +97,32 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('❌ Registration failed with error:', error);
       
-      // Handle validation errors
-      if (error.message && typeof error.message === 'object') {
-        const errors = Object.values(error.message).flat();
-        throw new Error(errors.join(', '));
+      // Handle different error types
+      let errorMessage = 'Registration failed';
+      
+      if (error.response && error.response.data) {
+        // Axios error structure
+        const responseData = error.response.data;
+        if (responseData.message) {
+          if (typeof responseData.message === 'object') {
+            // Validation errors object
+            const errors = Object.values(responseData.message).flat();
+            errorMessage = errors.join(', ');
+          } else {
+            errorMessage = responseData.message;
+          }
+        }
+      } else if (error.message) {
+        // Direct error message
+        if (typeof error.message === 'object') {
+          const errors = Object.values(error.message).flat();
+          errorMessage = errors.join(', ');
+        } else {
+          errorMessage = error.message;
+        }
       }
       
-      throw new Error(error.message || 'Registration failed');
+      throw new Error(errorMessage);
     } finally {
       setLoading(false);
     }
