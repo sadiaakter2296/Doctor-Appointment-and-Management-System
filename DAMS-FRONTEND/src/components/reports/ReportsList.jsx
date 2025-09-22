@@ -723,17 +723,7 @@ const PatientReports = () => {
                     </button>
                   </div>
 
-                  {/* Quick Stats */}
-                  <div className="mt-6 grid grid-cols-2 gap-3">
-                    <div className="bg-blue-50/70 backdrop-blur-sm rounded-lg p-3 border border-blue-200/50">
-                      <p className="text-xs text-blue-600">Total Visits</p>
-                      <p className="font-bold text-blue-800">{generatedReport.report_data?.summary?.total_visits || 'N/A'}</p>
-                    </div>
-                    <div className="bg-purple-50/70 backdrop-blur-sm rounded-lg p-3 border border-purple-200/50">
-                      <p className="text-xs text-purple-600">Total Amount</p>
-                      <p className="font-bold text-purple-800">৳{generatedReport.report_data?.summary?.total_amount?.toLocaleString() || 'N/A'}</p>
-                    </div>
-                  </div>
+                 
                 </div>
               </div>
             ) : (
@@ -749,34 +739,7 @@ const PatientReports = () => {
               </div>
             )}
 
-            {/* Recent Reports */}
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-orange-400/20 to-amber-400/20 rounded-2xl blur"></div>
-              <div className="relative bg-white/70 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl p-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-3">
-                  <Clock className="w-5 h-5 text-orange-600" />
-                  Recent Reports
-                </h3>
-                <div className="space-y-3">
-                  {recentReports.length === 0 ? (
-                    <div className="text-center p-4 text-gray-500">
-                      <Clock className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                      <p className="text-sm">No recent reports</p>
-                    </div>
-                  ) : (
-                    recentReports.map((report, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-white/50 rounded-lg border border-white/30">
-                        <div>
-                          <p className="font-medium text-gray-800 text-sm">{report.patient_name}</p>
-                          <p className="text-xs text-gray-600 capitalize">{report.report_type.replace('_', ' ')} • {report.generated_at}</p>
-                        </div>
-                        <Download className="w-4 h-4 text-gray-400 cursor-pointer hover:text-gray-600" />
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
+          
           </div>
         </div>
       </div>

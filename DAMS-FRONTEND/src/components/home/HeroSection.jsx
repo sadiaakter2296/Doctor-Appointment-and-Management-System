@@ -18,14 +18,14 @@ const HeroSection = () => {
   const [currentStat, setCurrentStat] = useState(0);
 
   const stats = [
-    { number: '50,000+', label: 'Patients Served', icon: Users },
-    { number: '200+', label: 'Qualified Doctors', icon: Activity },
+    { number: '500+', label: 'Patients Served', icon: Users },
+    { number: '22+', label: 'Qualified Doctors', icon: Activity },
     { number: '99.9%', label: 'Uptime Reliability', icon: Shield },
     { number: '24/7', label: 'Emergency Support', icon: Clock }
   ];
 
   const features = [
-    'Easy Online Appointment Booking',
+    'Easy Appointment Booking',
     'Real-time Doctor Availability',
     'Secure Medical Records',
     'Instant Prescription Access',
@@ -59,7 +59,7 @@ const HeroSection = () => {
               {/* Badge */}
               <div className="inline-flex items-center space-x-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium animate-bounce-in">
                 <Star className="w-4 h-4 text-yellow-500" />
-                <span>Trusted by 50,000+ Patients</span>
+                <span>Trusted by 500+ Patients</span>
               </div>
 
               {/* Main Heading */}

@@ -66,8 +66,7 @@ const Login = () => {
                 <Heart className="h-7 w-7 text-white" />
               </div>
               <div className="ml-3">
-                <span className="text-white text-2xl font-bold">DAMS</span>
-                <p className="text-white/70 text-xs">Digital Administration Management</p>
+                <span className="text-white text-2xl font-bold">Medicare Pro</span>
               </div>
             </div>
             <h2 className="text-3xl font-bold text-white mb-2">Welcome Back</h2>
@@ -182,16 +181,6 @@ const Login = () => {
                 Create one here
               </Link>
             </p>
-          </div>
-
-          {/* Quick Access Info */}
-          <div className="mt-6 p-4 bg-white/5 rounded-lg border border-white/10">
-            <h4 className="text-white font-medium text-sm mb-2">Quick Access:</h4>
-            <div className="space-y-1 text-xs text-white/70">
-              <p>• Patients: Book appointments & manage health records</p>
-              <p>• Doctors: Access patient dashboard & schedules</p>
-              <p>• Staff: Administrative tools & reporting</p>
-            </div>
           </div>
         </div>
       </div>

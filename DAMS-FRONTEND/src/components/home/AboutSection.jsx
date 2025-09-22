@@ -59,7 +59,7 @@ const AboutSection = () => {
   ];
 
   const stats = [
-    { number: '1k', label: 'Active Patients', icon: Users },
+    { number: '50+', label: 'Active Patients', icon: Users },
     { number: '22', label: 'Medical Professionals', icon: UserCheck },
     { number: '15+', label: 'Hospital Partners', icon: Building },
     { number: '99.9%', label: 'System Uptime', icon: Activity }
@@ -118,7 +118,7 @@ const AboutSection = () => {
         {/* <div className="text-center mb-16">
           <div className="inline-flex items-center space-x-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium mb-4">
             <Heart className="w-4 h-4" />
-            <span>About DAMS</span>
+            <span>About Medicare pro</span>
           </div>
           <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
             Transforming Healthcare
@@ -127,7 +127,7 @@ const AboutSection = () => {
             </span>
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            DAMS (Doctor Appointment & Management System) is a comprehensive healthcare platform 
+            Medicare Pro (Doctor Appointment & Management System) is a comprehensive healthcare platform 
             designed to streamline medical services and improve patient care through innovative technology.
           </p>
         </div> */}

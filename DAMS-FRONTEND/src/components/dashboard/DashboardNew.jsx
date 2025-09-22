@@ -23,7 +23,7 @@ const Dashboard = () => {
     appointments: 1,
     patients: 3,
     doctors: 3,
-    revenue: 302.5
+   
   };
 
   // Navigation functions for dashboard buttons
@@ -211,24 +211,7 @@ const Dashboard = () => {
           <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-purple-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
         </div>
 
-        <div
-          onClick={handleRevenueClick}
-          className="group relative overflow-hidden bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl border border-white/20 transition-all duration-500 hover:-translate-y-2 cursor-pointer p-6"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-orange-600/5 group-hover:from-orange-500/20 group-hover:to-orange-600/10 transition-all duration-500"></div>
-          <div className="relative flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Monthly Revenue</p>
-              <p className="text-4xl font-bold text-gray-800 mb-2">৳{stats.revenue}k</p>
-              
-            </div>
-            <div className="relative">
-              <div className="absolute inset-0 bg-orange-500/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-              <Banknote className="relative h-10 w-10 text-orange-600 group-hover:scale-110 transition-transform duration-300" />
-            </div>
-          </div>
-          <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-orange-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
-        </div>
+        
       </div>
 
       {/* Charts and Appointments */}

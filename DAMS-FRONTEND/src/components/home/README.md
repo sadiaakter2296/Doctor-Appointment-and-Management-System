@@ -1,6 +1,6 @@
-# DAMS Home Page Components
+# Medicare Pro Home Page Components
 
-This directory contains all the components for the Doctor Appointment Management System (DAMS) home page.
+This directory contains all the components for the Doctor Appointment Management System (Medicare Pro) home page.
 
 ## Components Overview
 

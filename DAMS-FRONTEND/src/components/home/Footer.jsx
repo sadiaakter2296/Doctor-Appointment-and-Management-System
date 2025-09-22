@@ -83,13 +83,13 @@ const Footer = () => {
     {
       icon: Phone,
       title: 'General Inquiries',
-      info: '+1 (555) 123-DAMS',
+      info: '+1 (555) 123-MEDICARE',
       subtitle: 'Mon-Fri, 8 AM - 8 PM'
     },
     {
       icon: Mail,
       title: 'Email Support',
-      info: 'support@dams.health',
+      info: 'support@medicarepro.health',
       subtitle: 'Response within 24 hours'
     },
     {
@@ -140,7 +140,7 @@ const Footer = () => {
                 </div>
                 <div>
                   <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                    DAMS
+                    Medicare Pro
                   </h3>
                   <p className="text-gray-400 text-sm">Doctor Appointment & Management System</p>
                 </div>
@@ -214,63 +214,11 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Contact Information */}
-        <div className="border-t border-gray-700 py-12">
-          <div className="text-center mb-8">
-            <h3 className="text-2xl font-bold text-white mb-4">Get In Touch</h3>
-            <p className="text-gray-300">We're here to help 24/7. Reach out to us anytime.</p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {contactInfo.map((contact, index) => {
-              const Icon = contact.icon;
-              return (
-                <div
-                  key={index}
-                  className="bg-gray-800 p-6 rounded-2xl hover:bg-gray-750 transition-all duration-300 hover:-translate-y-1 group"
-                >
-                  <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                      <Icon className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-white font-semibold mb-1">{contact.title}</h4>
-                      <p className="text-blue-400 font-medium text-sm mb-1">{contact.info}</p>
-                      <p className="text-gray-400 text-xs">{contact.subtitle}</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Newsletter Signup */}
-        <div className="border-t border-gray-700 py-8">
-          <div className="bg-gradient-to-r from-blue-900/50 to-purple-900/50 rounded-2xl p-8 text-center">
-            <h3 className="text-2xl font-bold text-white mb-4">Stay Updated</h3>
-            <p className="text-gray-300 mb-6">
-              Subscribe to our newsletter for the latest health tips and platform updates
-            </p>
-            <div className="max-w-md mx-auto flex gap-4">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <button className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors duration-200 flex items-center space-x-2">
-                <span>Subscribe</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-
         {/* Bottom Bar */}
         <div className="border-t border-gray-700 py-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-6 text-gray-400 text-sm">
-              <p>&copy; 2025 DAMS. All rights reserved.</p>
+              <p>&copy; 2025 Medicare Pro. All rights reserved.</p>
               <div className="flex items-center space-x-4">
                 <span className="text-gray-300 hover:text-blue-400 transition-colors duration-200">
                   Privacy Policy

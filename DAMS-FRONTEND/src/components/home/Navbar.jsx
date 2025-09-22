@@ -78,11 +78,11 @@ const Navbar = () => {
               <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl flex items-center justify-center shadow-lg animate-glow">
                 <Heart className="w-7 h-7 text-white" />
               </div>
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
+              
             </div>
             <div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
-                DAMS
+                Medicare Pro
               </h1>
               <p className="text-xs text-gray-600 font-medium">
                 Doctor Appointment & Management System
