@@ -121,7 +121,7 @@ const Register = ({ onClose, onSwitchToLogin }) => {
                 <span className="text-white text-2xl font-bold ml-2">MediCare Pro</span>
               </div>
               <h2 className="text-2xl font-bold text-white mb-2">Create Account</h2>
-              <p className="text-blue-100">Join our healthcare management system</p>
+              <p className="text-blue-100">Join our medicare pro management system</p>
             </div>
 
             {/* Error message */}

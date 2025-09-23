@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { UserCircle, LogOut, ChevronDown, Bell, Search } from 'lucide-react';
+import { LogOut, ChevronDown, Bell, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useNavigate } from 'react-router-dom';
@@ -99,8 +99,22 @@ const Header = ({ onToggleSidebar, sidebarOpen }) => {
               onClick={() => setDropdownOpen((v) => !v)}
               className="flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-gradient-to-br hover:from-blue-50 hover:to-blue-100 focus:outline-none border border-transparent hover:border-blue-200/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-100/50 hover:scale-105 group"
             >
-              <div className="p-1 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg shadow-lg">
-                <UserCircle className="w-6 h-6 text-white" />
+              <div className="p-1 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg shadow-lg overflow-hidden">
+                <img 
+                  src="/admin-icon.jpg" 
+                  alt="Admin Profile" 
+                  className="w-6 h-6 object-cover rounded"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'block';
+                  }}
+                />
+                <div 
+                  className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center text-white text-xs font-semibold"
+                  style={{ display: 'none' }}
+                >
+                  A
+                </div>
               </div>
               <span className="text-gray-800 font-semibold group-hover:text-blue-700 transition-colors duration-300">{user.name}</span>
               <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-all duration-300 group-hover:rotate-180" />

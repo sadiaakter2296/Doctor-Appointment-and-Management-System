@@ -6,15 +6,10 @@ import {
   Mail, 
   MapPin,
   Facebook,
-  Twitter,
   Instagram,
   Linkedin,
-  Youtube,
   ArrowRight,
   Clock,
-  Shield,
-  Award,
-  Globe,
   Smartphone,
   ChevronUp
 } from 'lucide-react';
@@ -30,45 +25,8 @@ const Footer = () => {
     {
       title: 'Quick Links',
       links: [
-        { name: 'About Us', href: '#about' },
-        { name: 'Our Services', href: '#services' },
-        { name: 'Book Appointment', href: '/register' },
-        { name: 'Find Doctors', href: '/doctors' },
-        { name: 'Dashboard', href: '/dashboard' },
-        { name: 'Contact Us', href: '#contact' }
-      ]
-    },
-    {
-      title: 'Services',
-      links: [
-        { name: 'Appointments', href: '/appointments' },
-        { name: 'Patient Management', href: '/patients' },
-        { name: 'Doctor Services', href: '/doctors' },
-        { name: 'Billing', href: '/billing' },
-        { name: 'Reports', href: '/reports' },
-        { name: 'Inventory', href: '/inventory' }
-      ]
-    },
-    {
-      title: 'Patient Resources',
-      links: [
-        { name: 'Login', href: '/login' },
-        { name: 'Register', href: '/register' },
-        { name: 'Dashboard', href: '/dashboard' },
-        { name: 'Appointments', href: '/appointments' },
-        { name: 'Notifications', href: '/notifications' },
-        { name: 'Settings', href: '/settings' }
-      ]
-    },
-    {
-      title: 'For Healthcare Providers',
-      links: [
-        { name: 'Doctor Dashboard', href: '/doctor/dashboard' },
-        { name: 'Doctor Schedule', href: '/doctor/schedule' },
-        { name: 'Staff Management', href: '/staff' },
-        { name: 'Doctor Profile', href: '/doctor/profile' },
-        { name: 'Communications', href: '/communications' },
-        { name: 'Performance', href: '/doctor/performance' }
+        { name: 'Home', href: '/' },
+        { name: 'About', href: '#about' }
       ]
     }
   ];
@@ -102,17 +60,8 @@ const Footer = () => {
 
   const socialLinks = [
     { icon: Facebook, href: '#', color: 'hover:text-blue-600' },
-    { icon: Twitter, href: '#', color: 'hover:text-blue-400' },
     { icon: Instagram, href: '#', color: 'hover:text-pink-500' },
-    { icon: Linkedin, href: '#', color: 'hover:text-blue-700' },
-    { icon: Youtube, href: '#', color: 'hover:text-red-600' }
-  ];
-
-  const certifications = [
-    { icon: Shield, text: 'HIPAA Compliant' },
-    { icon: Award, text: 'ISO 27001 Certified' },
-    { icon: Globe, text: 'GDPR Compliant' },
-    { icon: Heart, text: 'FDA Approved' }
+    { icon: Linkedin, href: '#', color: 'hover:text-blue-700' }
   ];
 
   return (
@@ -129,10 +78,10 @@ const Footer = () => {
         
         {/* Main Footer Content */}
         <div className="pt-16 pb-12">
-          <div className="grid lg:grid-cols-6 gap-12">
+          <div className="grid lg:grid-cols-2 gap-12">
             
-            {/* Company Info - Takes 2 columns */}
-            <div className="lg:col-span-2 space-y-6">
+            {/* Company Info - Left Side */}
+            <div className="space-y-6">
               {/* Logo and Brand */}
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl flex items-center justify-center">
@@ -170,46 +119,28 @@ const Footer = () => {
                   })}
                 </div>
               </div>
-
-              {/* Certifications */}
-              <div className="space-y-3">
-                <h4 className="text-lg font-semibold text-white">Certifications</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  {certifications.map((cert, index) => {
-                    const Icon = cert.icon;
-                    return (
-                      <div key={index} className="flex items-center space-x-2 text-sm text-gray-300">
-                        <Icon className="w-4 h-4 text-green-400" />
-                        <span>{cert.text}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
             </div>
 
-            {/* Footer Links - Takes 4 columns */}
-            <div className="lg:col-span-4 grid md:grid-cols-4 gap-8">
-              {footerSections.map((section, sectionIndex) => (
-                <div key={section.title} className="space-y-4">
-                  <h4 className="text-lg font-semibold text-white border-b border-gray-700 pb-2">
-                    {section.title}
-                  </h4>
-                  <ul className="space-y-3">
-                    {section.links.map((link, linkIndex) => (
-                      <li key={linkIndex}>
-                        <a
-                          href={link.href}
-                          className="text-gray-300 hover:text-blue-400 transition-colors duration-200 text-sm flex items-center group"
-                        >
-                          <span>{link.name}</span>
-                          <ArrowRight className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-200" />
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+            {/* Quick Links - Right Side */}
+            <div className="flex justify-end">
+              <div className="space-y-4">
+                <h4 className="text-lg font-semibold text-white border-b border-gray-700 pb-2">
+                  Quick Links
+                </h4>
+                <ul className="space-y-3">
+                  {footerSections[0].links.map((link, linkIndex) => (
+                    <li key={linkIndex}>
+                      <a
+                        href={link.href}
+                        className="text-gray-300 hover:text-blue-400 transition-colors duration-200 text-sm flex items-center group"
+                      >
+                        <span>{link.name}</span>
+                        <ArrowRight className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-200" />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -235,14 +166,8 @@ const Footer = () => {
             </div>
 
             <div className="flex items-center space-x-4 text-gray-400 text-sm">
-              <div className="flex items-center space-x-2">
-                <Smartphone className="w-4 h-4" />
-                <span>Mobile App Available</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Clock className="w-4 h-4" />
-                <span>24/7 Support</span>
-              </div>
+              
+             
             </div>
           </div>
         </div>

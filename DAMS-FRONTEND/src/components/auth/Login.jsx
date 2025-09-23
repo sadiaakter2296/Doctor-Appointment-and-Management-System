@@ -70,7 +70,7 @@ const Login = () => {
               </div>
             </div>
             <h2 className="text-3xl font-bold text-white mb-2">Welcome Back</h2>
-            <p className="text-blue-100">Sign in to access your healthcare dashboard</p>
+            <p className="text-blue-100">Sign in to access your medicare pro dashboard</p>
           </div>
 
           {/* Success message */}
@@ -129,15 +129,7 @@ const Login = () => {
               </div>
             </div>
 
-            {/* Forgot Password Link */}
-            <div className="flex justify-end">
-              <Link 
-                to="/forgot-password" 
-                className="text-white/80 hover:text-white text-sm transition-colors duration-200 hover:underline"
-              >
-                Forgot your password?
-              </Link>
-            </div>
+            
 
             <button
               type="submit"

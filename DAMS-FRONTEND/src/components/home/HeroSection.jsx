@@ -15,10 +15,9 @@ import {
 
 const HeroSection = () => {
   const navigate = useNavigate();
-  const [currentStat, setCurrentStat] = useState(0);
 
   const stats = [
-    { number: '500+', label: 'Patients Served', icon: Users },
+    { number: '500+', label: 'Patient Service', icon: Users },
     { number: '22+', label: 'Qualified Doctors', icon: Activity },
     { number: '99.9%', label: 'Uptime Reliability', icon: Shield },
     { number: '24/7', label: 'Emergency Support', icon: Clock }
@@ -31,13 +30,6 @@ const HeroSection = () => {
     'Instant Prescription Access',
     'Emergency Care Support'
   ];
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentStat((prev) => (prev + 1) % stats.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <section id="home" className="relative min-h-screen flex items-center overflow-hidden">
@@ -126,17 +118,13 @@ const HeroSection = () => {
                 return (
                   <div
                     key={stat.label}
-                    className={`p-6 rounded-2xl transition-all duration-500 ${
-                      currentStat === index
-                        ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-xl scale-105'
-                        : 'bg-white text-gray-700 shadow-lg hover:shadow-xl'
-                    }`}
+                    className="p-6 rounded-2xl bg-white text-gray-700 shadow-lg hover:shadow-xl"
                   >
                     <div className="flex items-center space-x-3">
-                      <Icon className={`w-8 h-8 ${currentStat === index ? 'text-white' : 'text-blue-600'}`} />
+                      <Icon className="w-8 h-8 text-blue-600" />
                       <div>
                         <div className="text-2xl font-bold">{stat.number}</div>
-                        <div className={`text-sm ${currentStat === index ? 'text-blue-100' : 'text-gray-500'}`}>
+                        <div className="text-sm text-gray-500">
                           {stat.label}
                         </div>
                       </div>
