@@ -8,8 +8,8 @@ import {
   Activity,
   ArrowRight,
   Play,
-  CheckCircle,
-  Star,
+
+Star,
   Phone
 } from 'lucide-react';
 
@@ -76,7 +76,7 @@ const HeroSection = () => {
                     className="flex items-center space-x-3 animate-slide-in-right"
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
-                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    
                     <span className="text-gray-700">{feature}</span>
                   </div>
                 ))}

@@ -1,0 +1,10 @@
+{
+  "doctor_id": 1,
+  "patient_name": "Test Patient",
+  "patient_email": "test@example.com",
+  "patient_phone": "01700000000",
+  "appointment_date": "2025-09-28",
+  "appointment_time": "10:00",
+  "reason": "Test appointment",
+  "status": "pending"
+}

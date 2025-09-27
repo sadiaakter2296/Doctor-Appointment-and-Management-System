@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect } from "react";
 import { User, Phone, Mail, Calendar, Clock, Eye, Edit, Trash2 } from "lucide-react";
 import PatientDetailsModal from "../patients/PatientDetailsModal";
+import { appointmentService } from "../../api/appointmentService";
 
 const AppointmentManagement = () => {
   const [appointments, setAppointments] = useState([]);
@@ -33,59 +34,18 @@ const AppointmentManagement = () => {
   const fetchAppointments = async () => {
     try {
       setLoading(true);
-      // Fetch patients with appointment information instead of appointments directly
-      const response = await fetch('http://localhost:8000/api/patients');
-      if (response.ok) {
-        const result = await response.json();
-        const patients = result.data || result;
-        
-        // Filter patients who have appointment information and transform to appointment format
-        const appointmentsFromPatients = patients
-          .filter(patient => {
-            const hasAppointment = patient.doctor_id && patient.preferred_appointment_date;
-            if (hasAppointment) {
-              console.log(`📅 Found appointment for patient: ${patient.name} - Dr. ${patient.doctor?.name || 'Unknown'} on ${patient.preferred_appointment_date}`);
-            }
-            return hasAppointment;
-          })
-          .map(patient => ({
-            id: `patient-${patient.id}`, // Use patient ID with prefix to avoid conflicts
-            patient_id: patient.id,
-            doctor_id: patient.doctor_id,
-            patient_name: patient.name,
-            patient_email: patient.email,
-            patient_phone: patient.phone,
-            appointment_date: patient.preferred_appointment_date.split('T')[0], // Extract date
-            appointment_time: patient.preferred_appointment_date.split('T')[1]?.substring(0, 5) || '09:00', // Extract time
-            reason: patient.booking_reason || 'General consultation',
-            status: patient.appointment_status?.toLowerCase() || 'pending',
-            created_at: patient.created_at,
-            updated_at: patient.updated_at,
-            // Include full patient and doctor information
-            patient: {
-              id: patient.id,
-              name: patient.name,
-              email: patient.email,
-              phone: patient.phone,
-              gender: patient.gender,
-              blood_type: patient.blood_type,
-              date_of_birth: patient.date_of_birth,
-              address: patient.address,
-              emergency_contact: patient.emergency_contact,
-              medical_history: patient.medical_history,
-              allergies: patient.allergies
-            },
-            doctor: patient.doctor // This should be populated from the patient's relationship
-          }));
-        
-        console.log(`📋 Extracted ${appointmentsFromPatients.length} appointments from ${patients.length} patients`);
-        setAppointments(appointmentsFromPatients);
-      } else {
-        setError('Failed to load patient appointment data');
-      }
-    } catch (err) {
-      console.error("Error fetching patient appointments:", err);
-      setError("Failed to load patient appointment data");
+      setError(null);
+      
+      // Fetch appointments directly from the API
+      const response = await appointmentService.getAll();
+      const appointmentsData = response.data || response || [];
+      
+      console.log('📅 Fetched appointments:', appointmentsData);
+      setAppointments(appointmentsData);
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+      setError('Failed to load appointments. Please try again.');
+      setAppointments([]);
     } finally {
       setLoading(false);
     }
@@ -93,35 +53,28 @@ const AppointmentManagement = () => {
 
   const handleStatusUpdate = async (appointmentId, newStatus) => {
     try {
-      // Extract patient ID from the appointment ID format "patient-{id}"
-      const patientId = appointmentId.replace('patient-', '');
-      
-      // Update the patient's appointment status
-      const response = await fetch(`http://localhost:8000/api/patients/${patientId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          appointment_status: newStatus.charAt(0).toUpperCase() + newStatus.slice(1) // Capitalize first letter
-        })
-      });
-      
-      if (response.ok) {
-        const updatedPatient = await response.json();
-        console.log('✅ Patient appointment status updated:', updatedPatient);
-        
-        // Update the local appointments state
-        setAppointments(prev => prev.map(app => 
-          app.id === appointmentId 
-            ? { ...app, status: newStatus }
-            : app
-        ));
+      if (newStatus === 'cancelled') {
+        // Delete the appointment
+        await appointmentService.delete(appointmentId);
+        console.log('✅ Appointment cancelled/deleted');
+        // Remove from local state
+        setAppointments(prev => prev.filter(app => app.id !== appointmentId));
       } else {
-        console.error('Failed to update patient appointment status:', response.status);
-        setError('Failed to update appointment status');
+        // Update appointment status
+        await appointmentService.updateStatus(appointmentId, newStatus);
+        console.log(`✅ Appointment status updated to: ${newStatus}`);
+        // Update local state
+        setAppointments(prev => 
+          prev.map(app => 
+            app.id === appointmentId 
+              ? { ...app, status: newStatus }
+              : app
+          )
+        );
       }
-    } catch (err) {
-      console.error("Error updating patient appointment status:", err);
-      setError("Failed to update appointment status");
+    } catch (error) {
+      console.error('Error updating appointment status:', error);
+      setError(`Failed to ${newStatus === 'cancelled' ? 'cancel' : 'update'} appointment`);
     }
   };
 

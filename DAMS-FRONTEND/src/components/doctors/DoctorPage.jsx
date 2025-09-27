@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { doctorService } from '../../api/doctorService';
 import DoctorForm from './DoctorForm';
+import UserLoginModal from '../appointments/UserLoginModal';
 
 const DoctorPage = () => {
   const [viewMode, setViewMode] = useState('grid');
@@ -36,6 +37,7 @@ const DoctorPage = () => {
   const [error, setError] = useState('');
   const [editingDoctor, setEditingDoctor] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(null);
 
   useEffect(() => {
     loadDoctors();
@@ -154,6 +156,17 @@ const DoctorPage = () => {
 
   const handleEditDoctorClick = (doctor) => {
     openEditForm(doctor);
+  };
+
+  const handleBookAppointment = (doctor) => {
+    setShowBookingModal(doctor);
+  };
+
+  const handleBookingSuccess = (appointmentData) => {
+    console.log('Appointment booked successfully:', appointmentData);
+    // Force refresh data
+    loadDoctors();
+    // You could also trigger a global state update here if using Redux/Context
   };
 
   const handleMessageDoctor = (doctorId) => {
@@ -379,6 +392,16 @@ const DoctorPage = () => {
                   </div>
                 </div>
 
+                <div className="flex gap-2 mb-2">
+                  <button
+                    onClick={() => handleBookAppointment(doctor)}
+                    className="w-full bg-green-600 text-white py-2 px-3 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center justify-center gap-1"
+                  >
+                    <Calendar className="w-3 h-3" />
+                    Book Appointment
+                  </button>
+                </div>
+                
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleViewDetails(doctor)}
@@ -430,6 +453,13 @@ const DoctorPage = () => {
                     </div>
                     
                     <div className="flex gap-2">
+                      <button
+                        onClick={() => handleBookAppointment(doctor)}
+                        className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
+                        title="Book Appointment"
+                      >
+                        <Calendar className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => handleViewDetails(doctor)}
                         className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
@@ -595,6 +625,14 @@ const DoctorPage = () => {
           isEdit={!!editingDoctor}
         />
       )}
+
+      {/* User Login and Appointment Booking Modal */}
+      <UserLoginModal
+        isOpen={!!showBookingModal}
+        onClose={() => setShowBookingModal(null)}
+        doctor={showBookingModal}
+        onSuccess={handleBookingSuccess}
+      />
     </div>
   );
 };

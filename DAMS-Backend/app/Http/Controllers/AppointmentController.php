@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Appointment;
 use App\Models\Doctor;
+use App\Models\Patient;
 use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -32,6 +33,9 @@ class AppointmentController extends Controller
             'appointment_date' => 'required|date|after_or_equal:today',
             'appointment_time' => 'required|date_format:H:i',
             'reason' => 'nullable|string|max:1000',
+            'age' => 'nullable|integer|min:1|max:120',
+            'gender' => 'nullable|string|in:Male,Female,Other',
+            'blood_type' => 'nullable|string|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
             'status' => 'in:pending,confirmed,cancelled,completed'
         ]);
 
@@ -48,10 +52,45 @@ class AppointmentController extends Controller
                 ->first();
 
             if ($existingAppointment) {
-                return response()->json(['error' => 'This time slot is already booked'], 422);
+                return response()->json(['error' => 'Already booked this schedule. Select another time.'], 422);
             }
 
             $appointment = Appointment::create($request->all());
+            
+            // Try to find or create patient record (optional, doesn't fail appointment creation)
+            try {
+                $patient = Patient::where('email', $request->patient_email)->first();
+                
+                if (!$patient) {
+                    // Calculate date of birth from age if provided
+                    $dateOfBirth = '1990-01-01'; // Default
+                    if ($request->age && is_numeric($request->age)) {
+                        $currentYear = now()->year;
+                        $birthYear = $currentYear - (int) $request->age;
+                        $dateOfBirth = $birthYear . '-01-01'; // Use January 1st as approximate
+                    }
+                    
+                    // Create new patient record from appointment data
+                    $patient = Patient::create([
+                        'name' => $request->patient_name,
+                        'email' => $request->patient_email,
+                        'phone' => $request->patient_phone,
+                        'date_of_birth' => $dateOfBirth,
+                        'gender' => $request->gender ?? 'Unknown',
+                        'address' => 'Not provided',
+                        'blood_type' => $request->blood_type ?? 'Unknown',
+                        'emergency_contact' => $request->patient_phone,
+                        'emergency_contact_name' => 'Not provided',
+                        'status' => 'Active'
+                    ]);
+                    
+                    // Update appointment with patient_id
+                    $appointment->update(['patient_id' => $patient->id]);
+                }
+            } catch (\Exception $patientError) {
+                // Log the error but don't fail the appointment creation
+                \Log::warning('Failed to create patient record: ' . $patientError->getMessage());
+            }
             
             // Create notification for new appointment
             try {

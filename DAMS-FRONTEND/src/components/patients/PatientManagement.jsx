@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import PatientForm from './PatientForm';
 import { patientService } from '../../api/patientService';
+import { appointmentService } from '../../api/appointmentService';
 
 const PatientManagement = () => {
   const navigate = useNavigate();
@@ -32,9 +33,17 @@ const PatientManagement = () => {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [selectedBloodType, setSelectedBloodType] = useState('');
   const [showPatientDetails, setShowPatientDetails] = useState(null);
+  const [appointments, setAppointments] = useState([]);
+
+  // Helper function to format dates
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString();
+  };
 
   // Load patients from backend
   useEffect(() => {
@@ -45,8 +54,15 @@ const PatientManagement = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await patientService.getAll();
-      setPatients(data);
+      
+      // Load both patients and appointments
+      const [patientsData, appointmentsData] = await Promise.all([
+        patientService.getAll(),
+        appointmentService.getAll()
+      ]);
+      
+      setPatients(patientsData || []);
+      setAppointments(appointmentsData || []);
     } catch (error) {
       console.error('Error loading patients:', error);
       setError('Failed to load patients. Please try again.');
@@ -55,8 +71,56 @@ const PatientManagement = () => {
     }
   };
 
+  // Combine patients and appointments into a unified patient list
+  const combinedPatients = [
+    // Existing patients (enhanced with latest appointment info)
+    ...(patients || []).map(patient => {
+      // Find the most recent appointment for this patient
+      const patientAppointments = (appointments || []).filter(app => app.patient_email === patient.email);
+      const latestAppointment = patientAppointments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+      
+      return {
+        ...patient,
+        type: 'patient',
+        id: `patient_${patient.id}`,
+        originalId: patient.id, // Preserve original ID for deletion
+        appointment_status: latestAppointment?.status || patient.appointment_status || 'N/A',
+        doctor_name: latestAppointment?.doctor?.name || patient.doctor?.name || 'N/A',
+        last_appointment: latestAppointment ? formatDate(latestAppointment.appointment_date) : (patient.preferred_appointment_date ? formatDate(patient.preferred_appointment_date) : 'N/A'),
+        latest_appointment: latestAppointment, // Include full appointment details for reference
+        reason: latestAppointment?.reason || patient.booking_reason || 'N/A'
+      };
+    }),
+    // Appointment-based patient entries (only for appointments without existing patient records)
+    ...(appointments || [])
+      .filter(appointment => {
+        // Only include appointments that don't have a corresponding patient record
+        const existingPatient = (patients || []).find(patient => patient.email === appointment.patient_email);
+        return !existingPatient;
+      })
+      .map(appointment => ({
+        id: `appointment_${appointment.id}`,
+        originalId: appointment.id, // Preserve original ID for deletion
+        name: appointment.patient_name,
+        email: appointment.patient_email,
+        phone: appointment.patient_phone,
+        type: 'appointment',
+        appointment_id: appointment.id,
+        appointment_date: appointment.appointment_date,
+        appointment_time: appointment.appointment_time,
+        appointment_status: appointment.status,
+        doctor_name: appointment.doctor?.name || 'Unknown',
+      reason: appointment.reason,
+      status: 'Active', // Default status for appointment-based entries
+      blood_type: 'Unknown',
+      date_of_birth: 'Unknown',
+      gender: 'Unknown',
+      last_appointment: formatDate(appointment.appointment_date)
+    }))
+  ];
+
   // Filter patients based on search term and blood type
-  const filteredPatients = (patients || []).filter(patient => {
+  const filteredPatients = combinedPatients.filter(patient => {
     const matchesSearch = patient.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          patient.phone?.includes(searchTerm) ||
                          patient.email?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -66,7 +130,7 @@ const PatientManagement = () => {
   });
 
   // Get unique blood types for filter
-  const bloodTypes = [...new Set((patients || []).map(patient => patient.blood_type).filter(Boolean))];
+  const bloodTypes = [...new Set(combinedPatients.map(patient => patient.blood_type).filter(type => type && type !== 'Unknown'))];
 
   // Handler functions
   const handleAddPatient = () => {
@@ -81,23 +145,52 @@ const PatientManagement = () => {
 
   const handleDeletePatient = async (patientId) => {
     try {
-      await patientService.delete(patientId);
+      setLoading(true); // Show loading state during deletion
+      
+      // Find the patient object to determine type and original ID
+      const patientToDelete = combinedPatients.find(p => p.id === patientId);
+      
+      if (!patientToDelete) {
+        setError('Patient not found.');
+        setShowDeleteConfirm(null);
+        setLoading(false);
+        return;
+      }
+
+      console.log('Deleting patient:', patientToDelete); // Debug log
+
+      if (patientToDelete.type === 'patient') {
+        // Real patient - delete from patients table
+        console.log('Deleting real patient with ID:', patientToDelete.originalId);
+        await patientService.delete(patientToDelete.originalId);
+        setSuccess('Patient deleted successfully.');
+      } else if (patientToDelete.type === 'appointment') {
+        // Appointment-based entry - delete the appointment
+        console.log('Deleting appointment with ID:', patientToDelete.originalId);
+        await appointmentService.delete(patientToDelete.originalId);
+        setSuccess('Appointment deleted successfully.');
+      }
+      
       await loadPatients(); // Reload patients
       setShowDeleteConfirm(null);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(null), 3000);
     } catch (error) {
       console.error('Error deleting patient:', error);
       setError('Failed to delete patient. Please try again.');
+      setShowDeleteConfirm(null);
+      
+      // Clear error message after 5 seconds
+      setTimeout(() => setError(null), 5000);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handlePatientAdded = async () => {
     await loadPatients(); // Reload patients
     setShowPatientForm(false);
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString();
   };
 
   const getAge = (dateOfBirth) => {
@@ -257,6 +350,22 @@ const PatientManagement = () => {
         </div>
       )}
 
+      {/* Success Message */}
+      {success && (
+        <div className="mx-6 mt-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg flex items-center gap-2">
+          <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          </svg>
+          {success}
+          <button 
+            onClick={() => setSuccess(null)}
+            className="ml-auto text-green-700 hover:text-green-900"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* Patients Table */}
       <div className="p-6">
         {filteredPatients.length === 0 ? (
@@ -322,9 +431,19 @@ const PatientManagement = () => {
                     <td className="py-4 px-4">
                       <div className="space-y-1">
                         <div className="text-sm font-medium">
-                          {getAge(patient.date_of_birth)} years
+                          {patient.date_of_birth && patient.date_of_birth !== 'Unknown' ? 
+                            `${getAge(patient.date_of_birth)} years` : 
+                            'Age N/A'
+                          }
                         </div>
-                        <div className="text-sm text-gray-600">{patient.gender}</div>
+                        <div className="text-sm text-gray-600">
+                          {patient.gender && patient.gender !== 'Unknown' ? patient.gender : 'Gender N/A'}
+                        </div>
+                        {patient.type === 'appointment' && (
+                          <div className="text-xs text-blue-600 bg-blue-50 px-1 py-0.5 rounded">
+                            Appointment Patient
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="py-4 px-4">
@@ -337,35 +456,55 @@ const PatientManagement = () => {
                     </td>
                     <td className="py-4 px-4">
                       <div className="space-y-1">
-                        {patient.doctor && (
+                        {(patient.doctor_name && patient.doctor_name !== 'N/A' && patient.doctor_name !== 'Unknown') ? (
+                          <div className="text-sm font-medium text-blue-600">
+                            Dr. {patient.doctor_name}
+                          </div>
+                        ) : patient.doctor && (
                           <div className="text-sm font-medium text-blue-600">
                             Dr. {patient.doctor.name}
                           </div>
                         )}
+                        
+                        {patient.type === 'appointment' && patient.appointment_date && (
+                          <div className="text-xs text-gray-600">
+                            {formatDate(patient.appointment_date)} at {patient.appointment_time}
+                          </div>
+                        )}
+                        
                         {patient.doctor && patient.doctor.specialization && (
                           <div className="text-xs text-gray-500">
                             {patient.doctor.specialization}
                           </div>
                         )}
-                        {patient.preferred_appointment_date && (
+                        
+                        {patient.preferred_appointment_date && patient.type === 'patient' && (
                           <div className="text-xs text-gray-600">
                             {formatDate(patient.preferred_appointment_date)}
                           </div>
                         )}
+                        
                         {patient.appointment_status && (
                           <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
-                            patient.appointment_status === 'Confirmed' 
+                            patient.appointment_status === 'confirmed' || patient.appointment_status === 'Confirmed'
                               ? 'bg-green-100 text-green-800' 
-                              : patient.appointment_status === 'Pending'
+                              : patient.appointment_status === 'pending' || patient.appointment_status === 'Pending'
                               ? 'bg-yellow-100 text-yellow-800'
-                              : patient.appointment_status === 'Completed'
+                              : patient.appointment_status === 'completed' || patient.appointment_status === 'Completed'
                               ? 'bg-blue-100 text-blue-800'
                               : 'bg-red-100 text-red-800'
                           }`}>
-                            {patient.appointment_status}
+                            {patient.appointment_status.charAt(0).toUpperCase() + patient.appointment_status.slice(1)}
                           </span>
                         )}
-                        {!patient.doctor && !patient.preferred_appointment_date && (
+                        
+                        {patient.type === 'appointment' && patient.reason && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            Reason: {patient.reason}
+                          </div>
+                        )}
+                        
+                        {!patient.doctor_name && !patient.doctor && !patient.preferred_appointment_date && patient.type !== 'appointment' && (
                           <span className="text-sm text-gray-400">No booking</span>
                         )}
                       </div>

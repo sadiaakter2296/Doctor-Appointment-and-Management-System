@@ -39,7 +39,10 @@ class ApiService {
         // Handle different error structures
         let errorMessage = `HTTP error! status: ${response.status}`;
         
-        if (errorData.message) {
+        // Check for error field first (our backend format)
+        if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (errorData.message) {
           if (typeof errorData.message === 'object') {
             // Validation errors object (Laravel style)
             const errors = Object.values(errorData.message).flat();
@@ -55,7 +58,14 @@ class ApiService {
           errorMessage = 'Server is experiencing issues. Please try again later.';
         }
         
-        throw new Error(errorMessage);
+        // Create a custom error with response data
+        const customError = new Error(errorMessage);
+        customError.response = {
+          status: response.status,
+          data: errorData
+        };
+        
+        throw customError;
       }
 
       const data = await response.json();
