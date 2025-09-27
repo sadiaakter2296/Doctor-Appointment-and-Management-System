@@ -44,15 +44,26 @@ class AppointmentController extends Controller
         }
 
         try {
-            // Check if appointment slot is available
-            $existingAppointment = Appointment::where('doctor_id', $request->doctor_id)
+            // Check if appointment slot is available for this doctor
+            $existingDoctorAppointment = Appointment::where('doctor_id', $request->doctor_id)
                 ->where('appointment_date', $request->appointment_date)
                 ->where('appointment_time', $request->appointment_time)
                 ->where('status', '!=', 'cancelled')
                 ->first();
 
-            if ($existingAppointment) {
+            if ($existingDoctorAppointment) {
                 return response()->json(['error' => 'Already booked this schedule. Select another time.'], 422);
+            }
+
+            // Check if patient already has an appointment at the same date and time (with any doctor)
+            $existingPatientAppointment = Appointment::where('patient_email', $request->patient_email)
+                ->where('appointment_date', $request->appointment_date)
+                ->where('appointment_time', $request->appointment_time)
+                ->where('status', '!=', 'cancelled')
+                ->first();
+
+            if ($existingPatientAppointment) {
+                return response()->json(['error' => 'You already have an appointment at this time. Please select a different time slot.'], 422);
             }
 
             $appointment = Appointment::create($request->all());
@@ -143,6 +154,38 @@ class AppointmentController extends Controller
             
             if (!$appointment) {
                 return response()->json(['error' => 'Appointment not found'], 404);
+            }
+
+            // If updating date/time/doctor, check for conflicts
+            if ($request->has('appointment_date') || $request->has('appointment_time') || $request->has('doctor_id')) {
+                $appointmentDate = $request->appointment_date ?? $appointment->appointment_date;
+                $appointmentTime = $request->appointment_time ?? $appointment->appointment_time;
+                $doctorId = $request->doctor_id ?? $appointment->doctor_id;
+                $patientEmail = $request->patient_email ?? $appointment->patient_email;
+
+                // Check if appointment slot is available for this doctor (excluding current appointment)
+                $existingDoctorAppointment = Appointment::where('doctor_id', $doctorId)
+                    ->where('appointment_date', $appointmentDate)
+                    ->where('appointment_time', $appointmentTime)
+                    ->where('status', '!=', 'cancelled')
+                    ->where('id', '!=', $id) // Exclude current appointment
+                    ->first();
+
+                if ($existingDoctorAppointment) {
+                    return response()->json(['error' => 'Already booked this schedule. Select another time.'], 422);
+                }
+
+                // Check if patient already has an appointment at the same date and time (excluding current appointment)
+                $existingPatientAppointment = Appointment::where('patient_email', $patientEmail)
+                    ->where('appointment_date', $appointmentDate)
+                    ->where('appointment_time', $appointmentTime)
+                    ->where('status', '!=', 'cancelled')
+                    ->where('id', '!=', $id) // Exclude current appointment
+                    ->first();
+
+                if ($existingPatientAppointment) {
+                    return response()->json(['error' => 'You already have an appointment at this time. Please select a different time slot.'], 422);
+                }
             }
 
             $appointment->update($request->all());

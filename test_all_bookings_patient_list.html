@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test All Appointment Bookings in Patient List</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Test All Appointment Bookings Show in Patient Page</h1>
+    
+    <div class="test-section">
+        <h3>Test Scenario: Create various appointments and verify they all appear in Patient Management</h3>
+        <p>This will create appointments with different patients and verify EVERY booking shows up in the patient page.</p>
+        
+        <button onclick="testAllBookingsInPatientList()">Run Test</button>
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        async function testAllBookingsInPatientList() {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '<p>Running tests...</p>';
+
+            // Create diverse appointment bookings
+            const testBookings = [
+                {
+                    doctor_id: 1,
+                    patient_name: 'Sarah Wilson',
+                    patient_email: 'sarah.wilson@test.com',
+                    patient_phone: '01711111111',
+                    appointment_date: '2025-10-08',
+                    appointment_time: '09:00',
+                    reason: 'General checkup',
+                    age: 32,
+                    gender: 'Female',
+                    blood_type: 'A+'
+                },
+                {
+                    doctor_id: 4,
+                    patient_name: 'Sarah Wilson',
+                    patient_email: 'sarah.wilson@test.com',
+                    patient_phone: '01711111111',
+                    appointment_date: '2025-10-10',
+                    appointment_time: '15:30',
+                    reason: 'Specialist follow-up',
+                    age: 32,
+                    gender: 'Female',
+                    blood_type: 'A+'
+                },
+                {
+                    doctor_id: 1,
+                    patient_name: 'Mike Johnson',
+                    patient_email: 'mike.johnson@test.com',
+                    patient_phone: '01722222222',
+                    appointment_date: '2025-10-09',
+                    appointment_time: '11:30',
+                    reason: 'Routine examination',
+                    age: 28,
+                    gender: 'Male',
+                    blood_type: 'B+'
+                },
+                {
+                    doctor_id: 4,
+                    patient_name: 'Lisa Brown',
+                    patient_email: 'lisa.brown@test.com',
+                    patient_phone: '01733333333',
+                    appointment_date: '2025-10-11',
+                    appointment_time: '14:00',
+                    reason: 'Initial consultation',
+                    age: 45,
+                    gender: 'Female',
+                    blood_type: 'O-'
+                },
+                {
+                    doctor_id: 1,
+                    patient_name: 'John Davis',
+                    patient_email: 'john.davis@test.com',
+                    patient_phone: '01744444444',
+                    appointment_date: '2025-10-12',
+                    appointment_time: '10:00',
+                    reason: 'Emergency visit',
+                    age: 38,
+                    gender: 'Male',
+                    blood_type: 'AB+'
+                }
+            ];
+
+            let html = '<h4>Creating Test Appointment Bookings:</h4>';
+            let successCount = 0;
+            const createdAppointments = [];
+
+            for (let i = 0; i < testBookings.length; i++) {
+                try {
+                    const response = await fetch('http://localhost:8000/api/appointments', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(testBookings[i])
+                    });
+
+                    const result = await response.json();
+                    
+                    html += '<div class="result">';
+                    if (response.ok) {
+                        html += `<div class="success"><strong>✓ Booking ${i + 1} created successfully</strong><br>`;
+                        html += `Patient: ${testBookings[i].patient_name}<br>`;
+                        html += `Email: ${testBookings[i].patient_email}<br>`;
+                        html += `Doctor ID: ${result.doctor_id}<br>`;
+                        html += `Date/Time: ${result.appointment_date} at ${result.appointment_time}<br>`;
+                        html += `Reason: ${result.reason}</div>`;
+                        successCount++;
+                        createdAppointments.push({
+                            name: testBookings[i].patient_name,
+                            email: testBookings[i].patient_email,
+                            doctor_id: result.doctor_id,
+                            appointment_date: result.appointment_date,
+                            appointment_time: result.appointment_time
+                        });
+                    } else {
+                        html += `<div class="error"><strong>✗ Booking ${i + 1} failed:</strong> ${result.error || JSON.stringify(result)}</div>`;
+                    }
+                    html += '</div>';
+
+                } catch (error) {
+                    html += `<div class="result error"><strong>Error creating booking ${i + 1}:</strong> ${error.message}</div>`;
+                }
+            }
+
+            // Summary
+            html += `<div class="result info"><strong>📊 Summary:</strong> ${successCount}/${testBookings.length} appointment bookings created successfully.</div>`;
+            
+            html += '<div class="result success"><strong>✅ Expected Results in Patient Management Page:</strong></div>';
+            html += '<div class="result">';
+            html += '<strong>Each booking should appear as a separate patient entry showing:</strong><br>';
+            
+            // Group by email for display
+            const groupedByEmail = {};
+            createdAppointments.forEach(apt => {
+                if (!groupedByEmail[apt.email]) {
+                    groupedByEmail[apt.email] = [];
+                }
+                groupedByEmail[apt.email].push(apt);
+            });
+
+            Object.entries(groupedByEmail).forEach(([email, appointments]) => {
+                const patientName = appointments[0].name;
+                html += `• <strong>${patientName}</strong> (${email}): ${appointments.length} booking(s)<br>`;
+                appointments.forEach((apt, idx) => {
+                    html += `&nbsp;&nbsp;- Appointment ${idx + 1}: Doctor ${apt.doctor_id} on ${apt.appointment_date} at ${apt.appointment_time}<br>`;
+                });
+            });
+            
+            html += '<br><strong>🎯 What to check in Patient Management:</strong><br>';
+            html += '• All bookings show up in the patient list<br>';
+            html += '• Each appointment booking appears as an individual patient entry<br>';
+            html += '• Appointment details are visible (doctor, date, time)<br>';
+            html += '• No "Add Patient" button is visible<br>';
+            html += '• Page description says "View all patient bookings and appointment records"';
+            html += '</div>';
+
+            resultsDiv.innerHTML = html;
+        }
+
+        // Auto-run test on page load
+        window.onload = function() {
+            setTimeout(testAllBookingsInPatientList, 1000);
+        };
+    </script>
+</body>
+</html>

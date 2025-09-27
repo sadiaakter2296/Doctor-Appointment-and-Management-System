@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+                                                                                                          import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../api/apiService';
 
@@ -146,6 +146,7 @@ export const AuthProvider = ({ children }) => {
       user, 
       token, 
       loading,
+      role: user?.role || (user ? 'patient' : null), // Default to 'patient' if user exists but no role specified
       login, 
       register, 
       logout,

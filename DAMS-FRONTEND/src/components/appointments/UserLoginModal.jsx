@@ -134,6 +134,13 @@ const UserLoginModal = ({ isOpen, onClose, doctor, onSuccess }) => {
         const appointmentResult = response.data || response;
         setBookedAppointment(appointmentResult);
         setShowSuccess(true);
+        
+        // Dispatch appointment created event to notify other components
+        console.log('📡 UserLoginModal: Dispatching appointmentCreated event');
+        window.dispatchEvent(new CustomEvent('appointmentCreated', { 
+          detail: { appointment: appointmentResult } 
+        }));
+        
         onSuccess && onSuccess(appointmentResult);
       }
     } catch (error) {

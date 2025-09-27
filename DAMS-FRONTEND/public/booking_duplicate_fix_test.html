@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Booking Duplicate Fix Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .test-section { margin: 30px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: white; }
+        .problem { background-color: #ffe6e6; border-color: #ffcccc; }
+        .solution { background-color: #e6ffe6; border-color: #ccffcc; }
+        .test-button { 
+            padding: 12px 24px; 
+            background-color: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            margin: 10px 5px;
+        }
+        .test-button:hover { background-color: #0056b3; }
+        .test-button.danger { background-color: #dc3545; }
+        .test-button.danger:hover { background-color: #c82333; }
+        .test-button.success { background-color: #28a745; }
+        .test-button.success:hover { background-color: #218838; }
+        .feature-list { list-style: none; padding: 0; }
+        .feature-list li { margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #007bff; }
+        .steps { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .steps ol { margin: 0; padding-left: 20px; }
+        .steps li { margin: 10px 0; }
+        .status { padding: 10px; border-radius: 5px; margin: 10px 0; font-weight: bold; }
+        .status.fixed { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.issue { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Patient Booking Duplicate Fix & Appointment Sync Test</h1>
+        
+        <div class="status fixed">
+            ✅ <strong>Issues Fixed:</strong>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+                <li>Duplicate patient entries in patient list</li>
+                <li>Appointment data not showing immediately on appointment page</li>
+                <li>Missing event dispatching from booking forms</li>
+                <li>Cache invalidation when new appointments created</li>
+            </ul>
+        </div>
+
+        <div class="test-section problem">
+            <h2>❌ Previous Issues</h2>
+            <h3>Issue 1: Duplicate Patient Entries</h3>
+            <p><strong>Problem:</strong> When a patient booked an appointment, they would appear twice in the patient list:</p>
+            <ul>
+                <li>Once as a "patient" entry from the patients table</li>
+                <li>Once as an "appointment" entry from the appointments table</li>
+            </ul>
+
+            <h3>Issue 2: Appointment Data Not Syncing</h3>
+            <p><strong>Problem:</strong> When a patient booked an appointment, the appointment wouldn't immediately appear on the appointment page without manual refresh.</p>
+        </div>
+
+        <div class="test-section solution">
+            <h2>✅ Solutions Implemented</h2>
+            
+            <h3>Fix 1: Unified Patient Data Logic</h3>
+            <ul class="feature-list">
+                <li><strong>Email-based deduplication:</strong> Use email as unique key to merge patient and appointment data</li>
+                <li><strong>Smart data merging:</strong> Combine patients table data with latest appointment info</li>
+                <li><strong>Single patient view:</strong> Each unique patient email shows only once in the list</li>
+                <li><strong>Complete appointment history:</strong> Each patient entry includes all their appointments</li>
+            </ul>
+
+            <h3>Fix 2: Real-time Event System</h3>
+            <ul class="feature-list">
+                <li><strong>Event dispatching:</strong> All appointment creation forms now dispatch 'appointmentCreated' events</li>
+                <li><strong>Cache invalidation:</strong> Patient and appointment pages force refresh when events received</li>
+                <li><strong>Multi-source support:</strong> Works from PatientForm, UserLoginModal, AppointmentModal, and AppointmentForm</li>
+                <li><strong>Instant updates:</strong> No manual refresh needed - data appears immediately</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 Test the Fix</h2>
+            
+            <div class="steps">
+                <h3>Test Steps:</h3>
+                <ol>
+                    <li><strong>Open Patient Page:</strong> Click the button below to open the patient management page</li>
+                    <li><strong>Check Current Patients:</strong> Note the current list of patients (no duplicates should exist)</li>
+                    <li><strong>Book New Appointment:</strong> Go to Doctors page and book an appointment for a new patient</li>
+                    <li><strong>Verify No Duplicates:</strong> Return to Patient page - the new patient should appear only once</li>
+                    <li><strong>Check Appointment Page:</strong> Go to Appointments page - the new appointment should appear immediately</li>
+                    <li><strong>Test Different Booking Methods:</strong> Try booking from different forms (PatientForm with appointment, Doctor booking modal)</li>
+                </ol>
+            </div>
+
+            <div style="text-align: center;">
+                <button class="test-button" onclick="openPage('patients')">
+                    👥 Open Patient Management
+                </button>
+                <button class="test-button" onclick="openPage('doctors')">
+                    👨‍⚕️ Open Doctors Page
+                </button>
+                <button class="test-button" onclick="openPage('appointments')">
+                    📅 Open Appointments Page
+                </button>
+            </div>
+
+            <div class="steps">
+                <h3>What to Look For:</h3>
+                <ul>
+                    <li>✅ <strong>No Duplicate Patients:</strong> Each patient email should appear only once in the patient list</li>
+                    <li>✅ <strong>Complete Appointment Info:</strong> Patient entries should show their latest appointment information</li>
+                    <li>✅ <strong>Instant Appointment Updates:</strong> New appointments should appear on appointment page without manual refresh</li>
+                    <li>✅ <strong>Real-time Sync:</strong> Patient page should update immediately when appointments are booked</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔧 Technical Details</h2>
+            
+            <h3>Code Changes Made:</h3>
+            
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                <h4>1. PatientManagement.jsx - Fixed Duplicate Logic</h4>
+                <p><strong>Before:</strong> Created separate entries for patients table and appointments table</p>
+                <p><strong>After:</strong> Uses Map with email as key to merge data and avoid duplicates</p>
+            </div>
+
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                <h4>2. Event System - Added Missing Event Dispatching</h4>
+                <p><strong>Fixed Components:</strong></p>
+                <ul>
+                    <li>UserLoginModal.jsx - Now dispatches 'appointmentCreated' events</li>
+                    <li>AppointmentModal.jsx - Now dispatches 'appointmentCreated' events</li>
+                    <li>AppointmentForm.jsx - Enhanced event dispatching</li>
+                </ul>
+            </div>
+
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                <h4>3. Cache Management - Improved Invalidation</h4>
+                <p><strong>Added:</strong> Event listeners in PatientManagement and AppointmentManagement to force refresh when:</p>
+                <ul>
+                    <li>'appointmentCreated' events are received</li>
+                    <li>'patientUpdated' events are received</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 Expected Results After Fix</h2>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div style="background: #e6ffe6; padding: 20px; border-radius: 8px;">
+                    <h4>👥 Patient Page</h4>
+                    <ul>
+                        <li>✅ Each unique patient shows only once</li>
+                        <li>✅ Patient entries include latest appointment info</li>
+                        <li>✅ Real-time updates when appointments created</li>
+                        <li>✅ No manual refresh needed</li>
+                    </ul>
+                </div>
+                
+                <div style="background: #e6ffe6; padding: 20px; border-radius: 8px;">
+                    <h4>📅 Appointment Page</h4>
+                    <ul>
+                        <li>✅ New appointments appear immediately</li>
+                        <li>✅ No page reload required</li>
+                        <li>✅ Works from all booking sources</li>
+                        <li>✅ Complete appointment details shown</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin: 40px 0; padding: 30px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 15px;">
+            <h2>🎉 Issues Successfully Fixed!</h2>
+            <p style="font-size: 1.1rem; margin-bottom: 20px;">
+                No more duplicate patients and real-time appointment synchronization is working!
+            </p>
+            <button class="test-button success" onclick="openPage('')" style="background: white; color: #333;">
+                🚀 Test the Application Now
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function openPage(page) {
+            const baseUrl = 'http://localhost:5174';
+            const url = page ? `${baseUrl}/${page}` : baseUrl;
+            
+            const testWindow = window.open(url, `test_${page || 'main'}`, 'width=1200,height=800');
+            
+            if (testWindow) {
+                testWindow.focus();
+                
+                // Show instructions
+                setTimeout(() => {
+                    alert(`Testing ${page || 'main'} page opened!\n\n` +
+                          `Key things to verify:\n` +
+                          `1. No duplicate patient entries\n` +
+                          `2. Appointment data syncs immediately\n` +
+                          `3. No manual refresh needed\n\n` +
+                          `Try booking appointments and watch the real-time updates!`);
+                }, 500);
+            }
+        }
+    </script>
+</body>
+</html>

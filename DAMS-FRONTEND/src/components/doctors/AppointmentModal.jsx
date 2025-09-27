@@ -133,7 +133,15 @@ const AppointmentModal = ({ isOpen, onClose, doctor }) => {
         status: 'pending'
       };
 
-      await appointmentService.create(appointmentPayload);
+      const appointmentResult = await appointmentService.create(appointmentPayload);
+      console.log('✅ Appointment created successfully:', appointmentResult);
+      
+      // Dispatch appointment created event to notify other components
+      console.log('📡 AppointmentModal: Dispatching appointmentCreated event');
+      window.dispatchEvent(new CustomEvent('appointmentCreated', { 
+        detail: { appointment: appointmentResult.data || appointmentResult } 
+      }));
+      
       setSuccess(true);
       setAppointmentData({
         patient_name: '',

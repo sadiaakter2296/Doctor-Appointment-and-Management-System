@@ -10,19 +10,7 @@ class BillingService {
       const queryString = new URLSearchParams(params).toString();
       const url = queryString ? `/billings?${queryString}` : '/billings';
       
-      const response = await fetch(`${API_BASE_URL}${url}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await apiService.get(url);
       
       return {
         success: true,
@@ -42,19 +30,7 @@ class BillingService {
   // Get billing by ID
   static async getBillingById(id) {
     try {
-      const response = await fetch(`${API_BASE_URL}/billings/${id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await apiService.get(`/billings/${id}`);
       return {
         success: true,
         data: data.data,
@@ -73,20 +49,7 @@ class BillingService {
   // Create new billing
   static async createBilling(billingData) {
     try {
-      const response = await fetch(`${API_BASE_URL}/billings`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(billingData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || `HTTP error! status: ${response.status}`);
-      }
+      const data = await apiService.post('/billings', billingData);
 
       return {
         success: true,
@@ -106,20 +69,7 @@ class BillingService {
   // Update billing
   static async updateBilling(id, billingData) {
     try {
-      const response = await fetch(`${API_BASE_URL}/billings/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(billingData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || `HTTP error! status: ${response.status}`);
-      }
+      const data = await apiService.put(`/billings/${id}`, billingData);
 
       return {
         success: true,
@@ -139,19 +89,7 @@ class BillingService {
   // Delete billing
   static async deleteBilling(id) {
     try {
-      const response = await fetch(`${API_BASE_URL}/billings/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || `HTTP error! status: ${response.status}`);
-      }
+      const data = await apiService.delete(`/billings/${id}`);
 
       return {
         success: true,
@@ -169,20 +107,7 @@ class BillingService {
   // Mark billing as paid
   static async markAsPaid(id, paymentData = {}) {
     try {
-      const response = await fetch(`${API_BASE_URL}/billings/${id}/mark-paid`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(paymentData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || `HTTP error! status: ${response.status}`);
-      }
+      const data = await apiService.post(`/billings/${id}/mark-paid`, paymentData);
 
       return {
         success: true,
@@ -235,19 +160,7 @@ class BillingService {
   // Get billing statistics
   static async getStatistics() {
     try {
-      const response = await fetch(`${API_BASE_URL}/billings-statistics`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await apiService.get('/billings-statistics');
       return {
         success: true,
         data: data.data,
@@ -266,19 +179,7 @@ class BillingService {
   // Get billings by appointment
   static async getBillingsByAppointment(appointmentId) {
     try {
-      const response = await fetch(`${API_BASE_URL}/billings/appointment/${appointmentId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await apiService.get(`/billings/appointment/${appointmentId}`);
       return {
         success: true,
         data: data.data,
@@ -464,20 +365,7 @@ class BillingService {
   // Create billing from appointment
   static async createFromAppointment(appointmentId, billingData) {
     try {
-      const response = await fetch(`${API_BASE_URL}/billings/appointment/${appointmentId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(billingData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || `HTTP error! status: ${response.status}`);
-      }
+      const data = await apiService.post(`/billings/appointment/${appointmentId}`, billingData);
 
       return {
         success: true,

@@ -36,6 +36,7 @@ class AuthController extends Controller
             $user->name = $request->name;
             $user->email = $request->email;
             $user->password = Hash::make($request->password);
+            $user->role = 'patient'; // Always create new registrations as patients
             $user->save();
 
             \Log::info('User created successfully:', ['id' => $user->id, 'email' => $user->email]);
@@ -55,6 +56,7 @@ class AuthController extends Controller
                         'id' => $user->id,
                         'name' => $user->name,
                         'email' => $user->email,
+                        'role' => $user->role,
                     ],
                     'token' => $token
                 ]
@@ -107,6 +109,7 @@ class AuthController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
+                    'role' => $user->role,
                 ],
                 'token' => $token
             ]
@@ -158,6 +161,7 @@ class AuthController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
+                    'role' => $user->role,
                 ]
             ]
         ], 200);

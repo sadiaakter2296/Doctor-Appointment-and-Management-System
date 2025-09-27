@@ -13,23 +13,20 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create a test user for development
-        User::create([
-            'name' => 'Admin User',
-            'email' => 'admin@dams.com',
-            'password' => bcrypt('password123'),
-        ]);
+        // Create the fixed admin user - only this user can access admin panel
+        User::updateOrCreate(
+            ['email' => 'admin@hospital.com'],
+            [
+                'name' => 'System Administrator',
+                'password' => bcrypt('admin123456'),
+                'role' => 'admin'
+            ]
+        );
 
-        User::create([
-            'name' => 'Dr. John Smith',
-            'email' => 'doctor@dams.com',
-            'password' => bcrypt('doctor123'),
-        ]);
-
-        User::create([
-            'name' => 'Nurse Jane',
-            'email' => 'nurse@dams.com',
-            'password' => bcrypt('nurse123'),
-        ]);
+        echo "Fixed admin account created:\n";
+        echo "Email: admin@hospital.com\n";
+        echo "Password: admin123456\n";
+        echo "Role: admin\n\n";
+        echo "All new registrations will automatically be 'patient' role.\n";
     }
 }

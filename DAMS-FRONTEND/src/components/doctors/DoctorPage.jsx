@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Search,
   Filter,
@@ -19,33 +19,57 @@ import {
   Trash2,
   Plus,
   Download,
-  X
+  X,
+  RefreshCw,
+  Loader
 } from 'lucide-react';
 import { doctorService } from '../../api/doctorService';
 import DoctorForm from './DoctorForm';
 import UserLoginModal from '../appointments/UserLoginModal';
+import RoleProtection, { useRoleAccess } from '../auth/RoleProtection';
+
+// Cache for storing data across component remounts
+const doctorCache = {
+  doctors: null,
+  lastFetch: null,
+  cacheExpiry: 5 * 60 * 1000 // 5 minutes
+};
 
 const DoctorPage = () => {
+  // Role-based access control
+  const { canBookAppointments, canManageDoctors, canViewDoctorDetails, isAdmin, isPatient } = useRoleAccess();
+  
   const [viewMode, setViewMode] = useState('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [showDoctorDetails, setShowDoctorDetails] = useState(null);
-  const [doctors, setDoctors] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [doctors, setDoctors] = useState(doctorCache.doctors || []);
+  const [loading, setLoading] = useState(false); // Start with false for instant page load
+  const [refreshing, setRefreshing] = useState(false); // Separate loading state for refresh
   const [error, setError] = useState('');
   const [editingDoctor, setEditingDoctor] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(null);
 
-  useEffect(() => {
-    loadDoctors();
+  // Check if cache is valid
+  const isCacheValid = useCallback(() => {
+    return doctorCache.lastFetch && 
+           (Date.now() - doctorCache.lastFetch) < doctorCache.cacheExpiry &&
+           doctorCache.doctors;
   }, []);
 
-  const loadDoctors = async () => {
+  // Load doctors with caching
+  const loadDoctors = useCallback(async (force = false) => {
     try {
-      setLoading(true);
+      // If cache is valid and not forcing refresh, use cached data
+      if (!force && isCacheValid()) {
+        setDoctors(doctorCache.doctors);
+        return;
+      }
+
+      setRefreshing(true);
       console.log('Loading doctors from API...');
       const response = await doctorService.getAllDoctors();
       console.log('Doctors loaded successfully:', response);
@@ -54,7 +78,13 @@ const DoctorPage = () => {
       const doctorsData = response?.data || response || [];
       console.log('Setting doctors data:', doctorsData);
       
-      setDoctors(Array.isArray(doctorsData) ? doctorsData : []);
+      const doctors = Array.isArray(doctorsData) ? doctorsData : [];
+      
+      // Update cache
+      doctorCache.doctors = doctors;
+      doctorCache.lastFetch = Date.now();
+      
+      setDoctors(doctors);
       setError('');
     } catch (err) {
       console.error('Error loading doctors:', err);
@@ -62,15 +92,42 @@ const DoctorPage = () => {
       // Set empty array on error to show empty state instead of breaking
       setDoctors([]);
     } finally {
-      setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, [isCacheValid]);
+
+  // Load doctors on component mount - with instant display if cached
+  useEffect(() => {
+    // If we have cached data, display it immediately
+    if (isCacheValid()) {
+      setDoctors(doctorCache.doctors);
+    } else {
+      setLoading(true);
+    }
+    
+    // Always try to load fresh data in the background
+    loadDoctors().finally(() => setLoading(false));
+  }, [loadDoctors, isCacheValid]);
 
   const handleDeleteDoctor = async (doctorId) => {
     try {
-      await doctorService.deleteDoctor(doctorId);
-      await loadDoctors();
+      // Optimistic delete - remove from UI immediately
+      const updatedDoctors = doctors.filter(d => d.id !== doctorId);
+      setDoctors(updatedDoctors);
+      doctorCache.doctors = updatedDoctors;
+      
       setShowDeleteConfirm(null);
+      
+      // Perform actual deletion in background
+      try {
+        await doctorService.deleteDoctor(doctorId);
+        // Success - the optimistic update was correct
+      } catch (err) {
+        // Failure - restore the data
+        console.error('Error deleting doctor:', err);
+        setError('Failed to delete doctor');
+        await loadDoctors(true); // Force refresh to restore state
+      }
     } catch (err) {
       setError('Failed to delete doctor');
       console.error('Error deleting doctor:', err);
@@ -85,8 +142,8 @@ const DoctorPage = () => {
       const response = await doctorService.createDoctor(doctorData);
       console.log('Doctor added successfully:', response);
       
-      // Reload doctors list
-      await loadDoctors();
+      // Reload doctors list with force refresh to get latest data
+      await loadDoctors(true);
       setShowForm(false);
       
       // Show success message
@@ -103,7 +160,7 @@ const DoctorPage = () => {
   const handleEdit = async (doctorData) => {
     try {
       await doctorService.updateDoctor(editingDoctor.id, doctorData);
-      await loadDoctors();
+      await loadDoctors(true); // Force refresh to get updated data
       setEditingDoctor(null);
       setShowForm(false);
     } catch (err) {
@@ -121,16 +178,25 @@ const DoctorPage = () => {
     setEditingDoctor(null);
   };
 
-  // Filter doctors based on search term and specialty
-  const filteredDoctors = doctors.filter(doctor => {
-    const matchesSearch = doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         doctor.specialty.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSpecialty = selectedSpecialty === '' || doctor.specialty === selectedSpecialty;
-    return matchesSearch && matchesSpecialty;
-  });
+  // Filter doctors based on search term and specialty - with memoization
+  const filteredDoctors = useMemo(() => {
+    return doctors.filter(doctor => {
+      const matchesSearch = doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           doctor.specialty.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSpecialty = selectedSpecialty === '' || doctor.specialty === selectedSpecialty;
+      return matchesSearch && matchesSpecialty;
+    });
+  }, [doctors, searchTerm, selectedSpecialty]);
 
-  // Get unique specialties for filter dropdown
-  const specialties = [...new Set(doctors.map(doctor => doctor.specialty))];
+  // Get unique specialties for filter dropdown - with memoization
+  const specialties = useMemo(() => {
+    return [...new Set(doctors.map(doctor => doctor.specialty))];
+  }, [doctors]);
+
+  // Manual refresh handler
+  const handleRefresh = useCallback(() => {
+    loadDoctors(true);
+  }, [loadDoctors]);
 
   // Handler functions for all buttons
   const handleAddDoctorClick = () => {
@@ -159,6 +225,10 @@ const DoctorPage = () => {
   };
 
   const handleBookAppointment = (doctor) => {
+    if (!canBookAppointments()) {
+      alert('Only patients and users can book appointments. Please login as a patient or contact admin.');
+      return;
+    }
     setShowBookingModal(doctor);
   };
 
@@ -173,11 +243,14 @@ const DoctorPage = () => {
     alert(`Messaging doctor ID: ${doctorId}`);
   };
 
-  if (loading) {
+  if (loading && !doctors.length) {
     return (
       <div className="p-6">
         <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="flex items-center gap-2 text-gray-600">
+            <Loader className="h-6 w-6 animate-spin" />
+            Loading doctors...
+          </div>
         </div>
       </div>
     );
@@ -189,8 +262,9 @@ const DoctorPage = () => {
       <div className="mb-8">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
               Doctor Management
+              {refreshing && <Loader className="h-5 w-5 animate-spin text-blue-500" />}
             </h1>
             <p className="text-gray-600">
               Manage and monitor all medical professionals in your system
@@ -199,19 +273,29 @@ const DoctorPage = () => {
           
           <div className="flex flex-wrap gap-3">
             <button
-              onClick={handleExportData}
-              className="flex items-center gap-2 bg-white text-gray-700 px-4 py-2 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all duration-200 shadow-sm"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="flex items-center gap-2 bg-white text-gray-700 px-4 py-2 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all duration-200 shadow-sm disabled:opacity-50"
             >
-              <Download className="w-4 h-4" />
-              Export
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Refreshing...' : 'Refresh'}
             </button>
-            <button
-              onClick={handleAddDoctorClick}
-              className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2 rounded-xl hover:shadow-lg hover:shadow-blue-200/50 transition-all duration-300"
-            >
-              <Plus className="w-4 h-4" />
-              Add Doctor
-            </button>
+            <RoleProtection allowedRoles={['admin']} hideIfUnauthorized={true}>
+              <button
+                onClick={handleExportData}
+                className="flex items-center gap-2 bg-white text-gray-700 px-4 py-2 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all duration-200 shadow-sm"
+              >
+                <Download className="w-4 h-4" />
+                Export
+              </button>
+              <button
+                onClick={handleAddDoctorClick}
+                className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2 rounded-xl hover:shadow-lg hover:shadow-blue-200/50 transition-all duration-300"
+              >
+                <Plus className="w-4 h-4" />
+                Add Doctor
+              </button>
+            </RoleProtection>
           </div>
         </div>
 
@@ -333,12 +417,14 @@ const DoctorPage = () => {
             <p className="text-gray-500 mb-6">
               {searchTerm || selectedSpecialty ? 'Try adjusting your search filters' : 'Get started by adding your first doctor'}
             </p>
-            <button
-              onClick={handleAddDoctorClick}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl hover:shadow-lg hover:shadow-blue-200/50 transition-all duration-300"
-            >
-              Add First Doctor
-            </button>
+            <RoleProtection allowedRoles={['admin']} hideIfUnauthorized={true}>
+              <button
+                onClick={handleAddDoctorClick}
+                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl hover:shadow-lg hover:shadow-blue-200/50 transition-all duration-300"
+              >
+                Add First Doctor
+              </button>
+            </RoleProtection>
           </div>
         ) : (
         <div className={viewMode === 'grid' 
@@ -393,13 +479,20 @@ const DoctorPage = () => {
                 </div>
 
                 <div className="flex gap-2 mb-2">
-                  <button
-                    onClick={() => handleBookAppointment(doctor)}
-                    className="w-full bg-green-600 text-white py-2 px-3 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center justify-center gap-1"
-                  >
-                    <Calendar className="w-3 h-3" />
-                    Book Appointment
-                  </button>
+                  {canBookAppointments() ? (
+                    <button
+                      onClick={() => handleBookAppointment(doctor)}
+                      className="w-full bg-green-600 text-white py-2 px-3 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center justify-center gap-1"
+                    >
+                      <Calendar className="w-3 h-3" />
+                      Book Appointment
+                    </button>
+                  ) : (
+                    <div className="w-full bg-gray-300 text-gray-500 py-2 px-3 rounded-lg text-sm font-medium flex items-center justify-center gap-1 cursor-not-allowed">
+                      <Calendar className="w-3 h-3" />
+                      Login as Patient to Book
+                    </div>
+                  )}
                 </div>
                 
                 <div className="flex gap-2">
@@ -410,19 +503,21 @@ const DoctorPage = () => {
                     <Eye className="w-3 h-3" />
                     View
                   </button>
-                  <button
-                    onClick={() => handleEditDoctorClick(doctor)}
-                    className="flex-1 bg-blue-100 text-blue-700 py-2 px-3 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium flex items-center justify-center gap-1"
-                  >
-                    <Edit className="w-3 h-3" />
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => setShowDeleteConfirm(doctor.id)}
-                    className="bg-red-100 text-red-700 py-2 px-3 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium flex items-center justify-center"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
+                  <RoleProtection allowedRoles={['admin']} hideIfUnauthorized={true}>
+                    <button
+                      onClick={() => handleEditDoctorClick(doctor)}
+                      className="flex-1 bg-blue-100 text-blue-700 py-2 px-3 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium flex items-center justify-center gap-1"
+                    >
+                      <Edit className="w-3 h-3" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => setShowDeleteConfirm(doctor.id)}
+                      className="bg-red-100 text-red-700 py-2 px-3 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium flex items-center justify-center"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </RoleProtection>
                 </div>
               </div>
             ) : (
@@ -453,31 +548,39 @@ const DoctorPage = () => {
                     </div>
                     
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => handleBookAppointment(doctor)}
-                        className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
-                        title="Book Appointment"
-                      >
-                        <Calendar className="w-4 h-4" />
-                      </button>
+                      {canBookAppointments() ? (
+                        <button
+                          onClick={() => handleBookAppointment(doctor)}
+                          className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
+                          title="Book Appointment"
+                        >
+                          <Calendar className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <div className="p-2 text-gray-400 rounded-lg cursor-not-allowed" title="Login as Patient to Book">
+                          <Calendar className="w-4 h-4" />
+                        </div>
+                      )}
                       <button
                         onClick={() => handleViewDetails(doctor)}
                         className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                       >
                         <Eye className="w-4 h-4" />
                       </button>
-                      <button
-                        onClick={() => handleEditDoctorClick(doctor)}
-                        className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setShowDeleteConfirm(doctor.id)}
-                        className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <RoleProtection allowedRoles={['admin']} hideIfUnauthorized={true}>
+                        <button
+                          onClick={() => handleEditDoctorClick(doctor)}
+                          className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setShowDeleteConfirm(doctor.id)}
+                          className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </RoleProtection>
                     </div>
                   </div>
                 </div>

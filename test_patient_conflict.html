@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Patient Appointment Conflict</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Test Patient Appointment Conflict Prevention</h1>
+    
+    <div class="test-section">
+        <h3>Test Scenario: Same patient booking two appointments at same time</h3>
+        <p>This will test if a patient can book multiple appointments at the same date/time with different doctors.</p>
+        
+        <button onclick="testPatientConflict()">Run Test</button>
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        async function testPatientConflict() {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '<p>Running tests...</p>';
+
+            const testData = {
+                patient_name: 'John Doe',
+                patient_email: 'john.doe@example.com',
+                patient_phone: '01700000000',
+                appointment_date: '2025-10-01',
+                appointment_time: '14:30',
+                reason: 'Regular checkup',
+                age: 30,
+                gender: 'Male',
+                blood_type: 'A+'
+            };
+
+            try {
+                // Test 1: Book appointment with Doctor 1
+                const appointment1 = await fetch('http://localhost:8000/api/appointments', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        ...testData,
+                        doctor_id: 1
+                    })
+                });
+
+                const result1 = await appointment1.json();
+                
+                let html = '<div class="result">';
+                if (appointment1.ok) {
+                    html += '<div class="success"><strong>✓ First appointment created successfully</strong><br>';
+                    html += `Appointment ID: ${result1.id}<br>`;
+                    html += `Doctor ID: ${result1.doctor_id}<br>`;
+                    html += `Date/Time: ${result1.appointment_date} at ${result1.appointment_time}</div>`;
+                } else {
+                    html += `<div class="error"><strong>✗ First appointment failed:</strong> ${result1.error || JSON.stringify(result1)}</div>`;
+                }
+                html += '</div>';
+
+                // Test 2: Try to book another appointment at same time with Doctor 2
+                const appointment2 = await fetch('http://localhost:8000/api/appointments', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        ...testData,
+                        doctor_id: 2, // Different doctor
+                        reason: 'Second appointment (should fail)'
+                    })
+                });
+
+                const result2 = await appointment2.json();
+                
+                html += '<div class="result">';
+                if (appointment2.ok) {
+                    html += '<div class="error"><strong>✗ PROBLEM: Second appointment was created (should have been blocked!)</strong><br>';
+                    html += `Appointment ID: ${result2.id}<br>`;
+                    html += `Doctor ID: ${result2.doctor_id}<br>`;
+                    html += `Date/Time: ${result2.appointment_date} at ${result2.appointment_time}</div>`;
+                } else {
+                    html += `<div class="success"><strong>✓ Second appointment correctly blocked:</strong> ${result2.error || JSON.stringify(result2)}</div>`;
+                }
+                html += '</div>';
+
+                // Test 3: Try to book appointment at different time (should work)
+                const appointment3 = await fetch('http://localhost:8000/api/appointments', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        ...testData,
+                        doctor_id: 2,
+                        appointment_time: '15:30', // Different time
+                        reason: 'Different time appointment (should work)'
+                    })
+                });
+
+                const result3 = await appointment3.json();
+                
+                html += '<div class="result">';
+                if (appointment3.ok) {
+                    html += '<div class="success"><strong>✓ Different time appointment created successfully</strong><br>';
+                    html += `Appointment ID: ${result3.id}<br>`;
+                    html += `Doctor ID: ${result3.doctor_id}<br>`;
+                    html += `Date/Time: ${result3.appointment_date} at ${result3.appointment_time}</div>`;
+                } else {
+                    html += `<div class="error"><strong>✗ Different time appointment failed:</strong> ${result3.error || JSON.stringify(result3)}</div>`;
+                }
+                html += '</div>';
+
+                resultsDiv.innerHTML = html;
+
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="result error"><strong>Error running tests:</strong> ${error.message}</div>`;
+            }
+        }
+
+        // Auto-run test on page load
+        window.onload = function() {
+            setTimeout(testPatientConflict, 1000);
+        };
+    </script>
+</body>
+</html>

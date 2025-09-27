@@ -190,6 +190,11 @@ const AppointmentForm = ({ appointmentId, onClose, onAppointmentSaved }) => {
           updateAppointment(appointmentId, result);
         } else {
           addAppointment(result);
+          // Dispatch appointment created event for new appointments
+          console.log('📡 AppointmentForm: Dispatching appointmentCreated event');
+          window.dispatchEvent(new CustomEvent('appointmentCreated', { 
+            detail: { appointment: result } 
+          }));
         }
         
         // Notify parent component to refresh data

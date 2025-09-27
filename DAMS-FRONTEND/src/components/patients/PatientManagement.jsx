@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search,
@@ -17,27 +17,43 @@ import {
   UserPlus,
   AlertTriangle,
   Loader,
-  X
+  X,
+  RefreshCw
 } from 'lucide-react';
 import PatientForm from './PatientForm';
 import { patientService } from '../../api/patientService';
 import { appointmentService } from '../../api/appointmentService';
+import RoleProtection, { useRoleAccess } from '../auth/RoleProtection';
+import { useAuth } from '../../context/AuthContext';
+
+// Cache for storing data across component remounts
+const dataCache = {
+  patients: null,
+  appointments: null,
+  lastFetch: null,
+  cacheExpiry: 5 * 60 * 1000 // 5 minutes
+};
 
 const PatientManagement = () => {
   const navigate = useNavigate();
-  const [patients, setPatients] = useState([]);
+  // Role-based access control
+  const { canManageDoctors, isAdmin } = useRoleAccess();
+  const { user } = useAuth(); // Get current logged-in user
+  
+  const [patients, setPatients] = useState(dataCache.patients || []);
+  const [appointments, setAppointments] = useState(dataCache.appointments || []);
   const [searchTerm, setSearchTerm] = useState('');
   const [status, setStatus] = useState('All Status');
   const [showFilters, setShowFilters] = useState(false);
   const [showPatientForm, setShowPatientForm] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Start with false for instant page load
+  const [refreshing, setRefreshing] = useState(false); // Separate loading state for refresh
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [selectedBloodType, setSelectedBloodType] = useState('');
   const [showPatientDetails, setShowPatientDetails] = useState(null);
-  const [appointments, setAppointments] = useState([]);
 
   // Helper function to format dates
   const formatDate = (dateString) => {
@@ -45,14 +61,25 @@ const PatientManagement = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
-  // Load patients from backend
-  useEffect(() => {
-    loadPatients();
+  // Check if cache is valid
+  const isCacheValid = useCallback(() => {
+    return dataCache.lastFetch && 
+           (Date.now() - dataCache.lastFetch) < dataCache.cacheExpiry &&
+           dataCache.patients && 
+           dataCache.appointments;
   }, []);
 
-  const loadPatients = async () => {
+  // Load patients from backend with caching
+  const loadPatients = useCallback(async (force = false) => {
     try {
-      setLoading(true);
+      // If cache is valid and not forcing refresh, use cached data
+      if (!force && isCacheValid()) {
+        setPatients(dataCache.patients);
+        setAppointments(dataCache.appointments);
+        return;
+      }
+
+      setRefreshing(true);
       setError(null);
       
       // Load both patients and appointments
@@ -61,76 +88,158 @@ const PatientManagement = () => {
         appointmentService.getAll()
       ]);
       
-      setPatients(patientsData || []);
-      setAppointments(appointmentsData || []);
+      const patients = patientsData || [];
+      const appointments = appointmentsData || [];
+      
+      // Update cache
+      dataCache.patients = patients;
+      dataCache.appointments = appointments;
+      dataCache.lastFetch = Date.now();
+      
+      setPatients(patients);
+      setAppointments(appointments);
     } catch (error) {
       console.error('Error loading patients:', error);
       setError('Failed to load patients. Please try again.');
     } finally {
-      setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, [isCacheValid]);
 
-  // Combine patients and appointments into a unified patient list
-  const combinedPatients = [
-    // Existing patients (enhanced with latest appointment info)
-    ...(patients || []).map(patient => {
-      // Find the most recent appointment for this patient
-      const patientAppointments = (appointments || []).filter(app => app.patient_email === patient.email);
-      const latestAppointment = patientAppointments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-      
-      return {
+  // Load patients on component mount - with instant display if cached
+  useEffect(() => {
+    // If we have cached data, display it immediately
+    if (isCacheValid()) {
+      setPatients(dataCache.patients);
+      setAppointments(dataCache.appointments);
+    } else {
+      setLoading(true);
+    }
+    
+    // Always try to load fresh data in the background
+    loadPatients().finally(() => setLoading(false));
+  }, [loadPatients, isCacheValid]);
+
+  // Listen for new appointments and patients to refresh data
+  useEffect(() => {
+    const handleAppointmentCreated = (event) => {
+      console.log('🔄 PatientManagement: New appointment created, force refreshing data...');
+      // Force refresh to get the latest appointment data
+      loadPatients(true);
+    };
+
+    const handlePatientUpdated = (event) => {
+      console.log('🔄 PatientManagement: Patient updated, force refreshing data...');
+      // Force refresh to get the latest patient data
+      loadPatients(true);
+    };
+
+    window.addEventListener('appointmentCreated', handleAppointmentCreated);
+    window.addEventListener('patientUpdated', handlePatientUpdated);
+    console.log('✅ PatientManagement: Event listeners added for appointmentCreated and patientUpdated');
+    
+    return () => {
+      window.removeEventListener('appointmentCreated', handleAppointmentCreated);
+      window.removeEventListener('patientUpdated', handlePatientUpdated);
+      console.log('🗑️ PatientManagement: Event listeners removed');
+    };
+  }, [loadPatients]);
+
+  // Combine patients and appointments into a unified patient list - with memoization for performance
+  // Show unique patients with their appointment information, avoiding duplicates
+  const combinedPatients = useMemo(() => {
+    const patientMap = new Map();
+    
+    // First, add all patients from the patients table
+    (patients || []).forEach(patient => {
+      patientMap.set(patient.email, {
         ...patient,
         type: 'patient',
         id: `patient_${patient.id}`,
-        originalId: patient.id, // Preserve original ID for deletion
-        appointment_status: latestAppointment?.status || patient.appointment_status || 'N/A',
-        doctor_name: latestAppointment?.doctor?.name || patient.doctor?.name || 'N/A',
-        last_appointment: latestAppointment ? formatDate(latestAppointment.appointment_date) : (patient.preferred_appointment_date ? formatDate(patient.preferred_appointment_date) : 'N/A'),
-        latest_appointment: latestAppointment, // Include full appointment details for reference
-        reason: latestAppointment?.reason || patient.booking_reason || 'N/A'
-      };
-    }),
-    // Appointment-based patient entries (only for appointments without existing patient records)
-    ...(appointments || [])
-      .filter(appointment => {
-        // Only include appointments that don't have a corresponding patient record
-        const existingPatient = (patients || []).find(patient => patient.email === appointment.patient_email);
-        return !existingPatient;
-      })
-      .map(appointment => ({
-        id: `appointment_${appointment.id}`,
-        originalId: appointment.id, // Preserve original ID for deletion
-        name: appointment.patient_name,
-        email: appointment.patient_email,
-        phone: appointment.patient_phone,
-        type: 'appointment',
-        appointment_id: appointment.id,
-        appointment_date: appointment.appointment_date,
-        appointment_time: appointment.appointment_time,
-        appointment_status: appointment.status,
-        doctor_name: appointment.doctor?.name || 'Unknown',
-      reason: appointment.reason,
-      status: 'Active', // Default status for appointment-based entries
-      blood_type: 'Unknown',
-      date_of_birth: 'Unknown',
-      gender: 'Unknown',
-      last_appointment: formatDate(appointment.appointment_date)
-    }))
-  ];
+        originalId: patient.id,
+        source: 'patient_table'
+      });
+    });
+    
+    // Then, process appointments and either update existing patients or add new ones
+    (appointments || []).forEach(appointment => {
+      const email = appointment.patient_email;
+      
+      if (patientMap.has(email)) {
+        // Update existing patient with appointment info
+        const existingPatient = patientMap.get(email);
+        const patientAppointments = (appointments || []).filter(app => app.patient_email === email);
+        const latestAppointment = patientAppointments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+        
+        patientMap.set(email, {
+          ...existingPatient,
+          appointment_status: latestAppointment?.status || existingPatient.appointment_status || 'N/A',
+          doctor_name: latestAppointment?.doctor?.name || existingPatient.doctor?.name || 'N/A',
+          last_appointment: latestAppointment ? formatDate(latestAppointment.appointment_date) : (existingPatient.preferred_appointment_date ? formatDate(existingPatient.preferred_appointment_date) : 'N/A'),
+          latest_appointment: latestAppointment,
+          all_appointments: patientAppointments,
+          total_appointments: patientAppointments.length,
+          reason: latestAppointment?.reason || existingPatient.booking_reason || 'N/A',
+          appointment_date: latestAppointment?.appointment_date,
+          appointment_time: latestAppointment?.appointment_time
+        });
+      } else {
+        // Add new patient entry based on appointment data
+        patientMap.set(email, {
+          id: `appointment_${appointment.id}`,
+          originalId: appointment.id,
+          name: appointment.patient_name,
+          email: appointment.patient_email,
+          phone: appointment.patient_phone,
+          type: 'appointment',
+          appointment_id: appointment.id,
+          appointment_date: appointment.appointment_date,
+          appointment_time: appointment.appointment_time,
+          appointment_status: appointment.status,
+          doctor_name: appointment.doctor?.name || 'Unknown',
+          reason: appointment.reason,
+          status: 'Active',
+          blood_type: appointment.patient_blood_type || 'Unknown',
+          date_of_birth: 'Unknown',
+          gender: appointment.patient_gender || 'Unknown',
+          age: appointment.patient_age || 'Unknown',
+          last_appointment: formatDate(appointment.appointment_date),
+          all_appointments: [appointment],
+          total_appointments: 1,
+          booking_date: formatDate(appointment.created_at),
+          source: 'appointment_only'
+        });
+      }
+    });
+    
+    return Array.from(patientMap.values());
+  }, [patients, appointments]);
 
-  // Filter patients based on search term and blood type
-  const filteredPatients = combinedPatients.filter(patient => {
-    const matchesSearch = patient.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         patient.phone?.includes(searchTerm) ||
-                         patient.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesBloodType = selectedBloodType === '' || patient.blood_type === selectedBloodType;
-    const matchesStatus = status === 'All Status' || patient.status === status;
-    return matchesSearch && matchesBloodType && matchesStatus;
-  });
+  // Filter patients based on search term and blood type - with memoization
+  const filteredPatients = useMemo(() => {
+    let patientsToFilter = combinedPatients;
+    
+    // If user is a patient (not admin), only show their own record
+    if (user?.role === 'patient') {
+      patientsToFilter = combinedPatients.filter(patient => 
+        patient.email?.toLowerCase() === user.email?.toLowerCase()
+      );
+    }
+    
+    return patientsToFilter.filter(patient => {
+      const matchesSearch = patient.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           patient.phone?.includes(searchTerm) ||
+                           patient.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesBloodType = selectedBloodType === '' || patient.blood_type === selectedBloodType;
+      const matchesStatus = status === 'All Status' || patient.status === status;
+      return matchesSearch && matchesBloodType && matchesStatus;
+    });
+  }, [combinedPatients, searchTerm, selectedBloodType, status, user]);
 
-  // Get unique blood types for filter
-  const bloodTypes = [...new Set(combinedPatients.map(patient => patient.blood_type).filter(type => type && type !== 'Unknown'))];
+  // Get unique blood types for filter - with memoization
+  const bloodTypes = useMemo(() => {
+    return [...new Set(combinedPatients.map(patient => patient.blood_type).filter(type => type && type !== 'Unknown'))];
+  }, [combinedPatients]);
 
   // Handler functions
   const handleAddPatient = () => {
@@ -145,53 +254,66 @@ const PatientManagement = () => {
 
   const handleDeletePatient = async (patientId) => {
     try {
-      setLoading(true); // Show loading state during deletion
-      
-      // Find the patient object to determine type and original ID
+      // Show optimistic delete (remove from UI immediately)
       const patientToDelete = combinedPatients.find(p => p.id === patientId);
       
       if (!patientToDelete) {
         setError('Patient not found.');
         setShowDeleteConfirm(null);
-        setLoading(false);
         return;
       }
 
       console.log('Deleting patient:', patientToDelete); // Debug log
 
+      // Optimistically remove from cache and UI
       if (patientToDelete.type === 'patient') {
-        // Real patient - delete from patients table
-        console.log('Deleting real patient with ID:', patientToDelete.originalId);
-        await patientService.delete(patientToDelete.originalId);
-        setSuccess('Patient deleted successfully.');
+        dataCache.patients = dataCache.patients?.filter(p => p.id !== patientToDelete.originalId) || [];
+        setPatients(prev => prev.filter(p => p.id !== patientToDelete.originalId));
       } else if (patientToDelete.type === 'appointment') {
-        // Appointment-based entry - delete the appointment
-        console.log('Deleting appointment with ID:', patientToDelete.originalId);
-        await appointmentService.delete(patientToDelete.originalId);
-        setSuccess('Appointment deleted successfully.');
+        dataCache.appointments = dataCache.appointments?.filter(a => a.id !== patientToDelete.originalId) || [];
+        setAppointments(prev => prev.filter(a => a.id !== patientToDelete.originalId));
       }
-      
-      await loadPatients(); // Reload patients
+
       setShowDeleteConfirm(null);
       
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(null), 3000);
+      // Perform actual deletion in background
+      try {
+        if (patientToDelete.type === 'patient') {
+          console.log('Deleting real patient with ID:', patientToDelete.originalId);
+          await patientService.delete(patientToDelete.originalId);
+        } else if (patientToDelete.type === 'appointment') {
+          console.log('Deleting appointment with ID:', patientToDelete.originalId);
+          await appointmentService.delete(patientToDelete.originalId);
+        }
+        
+        setSuccess('Patient deleted successfully.');
+        // Clear success message after 3 seconds
+        setTimeout(() => setSuccess(null), 3000);
+      } catch (error) {
+        console.error('Error deleting patient:', error);
+        setError('Failed to delete patient. Please try again.');
+        // Reload data to restore state if deletion failed
+        await loadPatients(true);
+        setTimeout(() => setError(null), 5000);
+      }
     } catch (error) {
       console.error('Error deleting patient:', error);
       setError('Failed to delete patient. Please try again.');
       setShowDeleteConfirm(null);
-      
-      // Clear error message after 5 seconds
       setTimeout(() => setError(null), 5000);
-    } finally {
-      setLoading(false);
     }
   };
 
   const handlePatientAdded = async () => {
-    await loadPatients(); // Reload patients
+    // Refresh data after adding patient
+    await loadPatients(true);
     setShowPatientForm(false);
   };
+
+  // Manual refresh handler
+  const handleRefresh = useCallback(() => {
+    loadPatients(true);
+  }, [loadPatients]);
 
   const getAge = (dateOfBirth) => {
     if (!dateOfBirth) return '-';
@@ -205,7 +327,7 @@ const PatientManagement = () => {
     return age;
   };
 
-  if (loading) {
+  if (loading && !patients.length && !appointments.length) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center gap-2 text-gray-600">
@@ -224,18 +346,24 @@ const PatientManagement = () => {
           <div>
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
               <User className="h-6 w-6 text-blue-500" />
-              Patient Management
+              {user?.role === 'patient' ? 'My Profile' : 'Patient Management'}
+              {refreshing && <Loader className="h-4 w-4 animate-spin text-blue-500" />}
             </h1>
-            <p className="text-gray-600 mt-1">Manage patient records and information</p>
+            <p className="text-gray-600 mt-1">
+              {user?.role === 'patient' 
+                ? 'View your personal information and booking history'
+                : 'View all patient bookings and appointment records'
+              }
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            
             <button
-              onClick={handleAddPatient}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
             >
-              <UserPlus className="h-4 w-4" />
-              Add Patient
+              <RefreshCw className={`h-4 w-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Refreshing...' : 'Refresh'}
             </button>
           </div>
         </div>
@@ -304,7 +432,9 @@ const PatientManagement = () => {
           <div className="bg-blue-50 p-4 rounded-lg">
             <div className="flex items-center gap-2">
               <User className="h-5 w-5 text-blue-600" />
-              <span className="text-sm font-medium text-blue-600">Total Patients</span>
+              <span className="text-sm font-medium text-blue-600">
+                {user?.role === 'patient' ? 'Profile' : 'Total Patients'}
+              </span>
             </div>
             <p className="text-2xl font-bold text-blue-700 mt-1">{(patients || []).length}</p>
           </div>
@@ -371,22 +501,18 @@ const PatientManagement = () => {
         {filteredPatients.length === 0 ? (
           <div className="text-center py-12">
             <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No patients found</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {user?.role === 'patient' ? 'No profile found' : 'No patients found'}
+            </h3>
             <p className="text-gray-600 mb-4">
-              {(patients || []).length === 0 
-                ? "Get started by adding your first patient."
-                : "Try adjusting your search or filter criteria."
+              {user?.role === 'patient' 
+                ? "Your profile will appear here once you book an appointment."
+                : (combinedPatients || []).length === 0 
+                  ? "Patients will automatically appear here when they book appointments."
+                  : "Try adjusting your search or filter criteria."
               }
             </p>
-            {(patients || []).length === 0 && (
-              <button
-                onClick={handleAddPatient}
-                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <UserPlus className="h-4 w-4" />
-                Add First Patient
-              </button>
-            )}
+            {/* Removed Add Patient button - patients are created automatically through appointment booking */}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -397,7 +523,7 @@ const PatientManagement = () => {
                   <th className="text-left py-3 px-4 font-medium text-gray-700">Contact</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-700">Age/Gender</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-700">Blood Type</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Doctor Booking</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Appointment Details</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
                 </tr>
@@ -527,20 +653,22 @@ const PatientManagement = () => {
                         >
                           <Eye className="h-4 w-4" />
                         </button>
-                        <button
-                          onClick={() => handleEditPatient(patient)}
-                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                          title="Edit Patient"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => setShowDeleteConfirm(patient.id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete Patient"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        <RoleProtection allowedRoles={['admin']} hideIfUnauthorized={true}>
+                          <button
+                            onClick={() => handleEditPatient(patient)}
+                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            title="Edit Patient"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => setShowDeleteConfirm(patient.id)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete Patient"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </RoleProtection>
                       </div>
                     </td>
                   </tr>
