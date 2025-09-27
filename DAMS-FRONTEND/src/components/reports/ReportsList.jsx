@@ -14,6 +14,8 @@ import {
   Clock,
   AlertTriangle
 } from 'lucide-react';
+import apiService from '../../api/apiService';
+import { patientService } from '../../api/patientService';
 
 const PatientReports = () => {
   const [selectedPatient, setSelectedPatient] = useState('');
@@ -29,55 +31,76 @@ const PatientReports = () => {
 
   // Load patients with billing records on component mount
   useEffect(() => {
-    fetchPatientsWithBilling();
+    fetchAllPatients();
     fetchRecentReports();
   }, []);
 
-  // Fetch patients who have billing records
+  // Fetch all patients (not just those with billing records)
+  const fetchAllPatients = async () => {
+    try {
+      setIsLoadingPatients(true);
+      console.log('Fetching all patients...');
+      
+      // Check if we have an auth token
+      const token = localStorage.getItem('auth_token');
+      console.log('Auth token exists:', !!token);
+      if (token) {
+        console.log('Token preview:', token.substring(0, 20) + '...');
+      }
+      
+      // Try to fetch all patients using patientService
+      const patients = await patientService.getAll();
+      console.log('Patients from patientService:', patients);
+      
+      if (Array.isArray(patients)) {
+        console.log('Setting patients:', patients);
+        setPatients(patients);
+      } else {
+        console.error('Invalid patient data format:', patients);
+        setPatients([]);
+      }
+    } catch (error) {
+      console.error('Error fetching patients:', error);
+      // If fetching all patients fails, try fetching only patients with billing records
+      try {
+        console.log('Trying fallback to patients with billing...');
+        const billingData = await apiService.get('/reports/patients-with-billing');
+        if (billingData.success || billingData.status === 'success') {
+          const patientData = billingData.data || [];
+          console.log('Setting patients from billing fallback:', patientData);
+          setPatients(patientData);
+        } else {
+          console.error('Billing fallback also failed:', billingData);
+          setPatients([]);
+        }
+      } catch (billingError) {
+        console.error('Error fetching patients with billing:', billingError);
+        setPatients([]);
+      }
+    } finally {
+      setIsLoadingPatients(false);
+    }
+  };
+
+  // Fetch patients who have billing records (backup method)
   const fetchPatientsWithBilling = async () => {
     try {
       setIsLoadingPatients(true);
       console.log('Fetching patients with billing records...');
       
-      const response = await fetch('http://localhost:8000/api/reports/patients-with-billing', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
-      });
-
-      console.log('Response status:', response.status, response.statusText);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: Failed to fetch patients`);
-      }
-
-      const data = await response.json();
+      const data = await apiService.get('/reports/patients-with-billing');
       console.log('API Response:', data);
       
       if (data.success) {
         console.log('Setting patients:', data.data);
-        setPatients(data.data);
+        setPatients(data.data || []);
       } else {
         console.error('API returned error:', data.message);
-        // Fallback to sample data if API fails
-        setPatients([
-          { id: 1, name: 'Ahmed Rahman', phone: '+8801712345678', email: 'ahmed@email.com', age: 35, gender: 'Male', total_billings: 3, total_amount: 8500, last_visit: '2025-08-10' },
-          { id: 2, name: 'Fatima Begum', phone: '+8801798765432', email: 'fatima@email.com', age: 28, gender: 'Female', total_billings: 2, total_amount: 5200, last_visit: '2025-08-08' },
-          { id: 3, name: 'Mohammad Ali', phone: '+8801687654321', email: 'ali@email.com', age: 42, gender: 'Male', total_billings: 4, total_amount: 12000, last_visit: '2025-08-12' },
-          { id: 4, name: 'Rashida Khatun', phone: '+8801556677889', email: 'rashida@email.com', age: 31, gender: 'Female', total_billings: 1, total_amount: 3500, last_visit: '2025-08-05' }
-        ]);
+        setPatients([]);
       }
     } catch (error) {
       console.error('Error fetching patients:', error);
-      // Fallback to sample data
-      setPatients([
-        { id: 1, name: 'Ahmed Rahman', phone: '+8801712345678', email: 'ahmed@email.com', age: 35, gender: 'Male', total_billings: 3, total_amount: 8500, last_visit: '2025-08-10' },
-        { id: 2, name: 'Fatima Begum', phone: '+8801798765432', email: 'fatima@email.com', age: 28, gender: 'Female', total_billings: 2, total_amount: 5200, last_visit: '2025-08-08' },
-        { id: 3, name: 'Mohammad Ali', phone: '+8801687654321', email: 'ali@email.com', age: 42, gender: 'Male', total_billings: 4, total_amount: 12000, last_visit: '2025-08-12' },
-        { id: 4, name: 'Rashida Khatun', phone: '+8801556677889', email: 'rashida@email.com', age: 31, gender: 'Female', total_billings: 1, total_amount: 3500, last_visit: '2025-08-05' }
-      ]);
+      setPatients([]);
     } finally {
       setIsLoadingPatients(false);
     }
@@ -86,30 +109,13 @@ const PatientReports = () => {
   // Fetch recent reports
   const fetchRecentReports = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/reports/recent', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch recent reports');
-      }
-
-      const data = await response.json();
+      const data = await apiService.get('/reports/recent');
       if (data.success) {
-        setRecentReports(data.data);
+        setRecentReports(data.data || []);
       }
     } catch (error) {
       console.error('Error fetching recent reports:', error);
-      // Fallback data
-      setRecentReports([
-        { patient_name: 'Ahmed Rahman', report_type: 'comprehensive', generated_at: '2025-08-15' },
-        { patient_name: 'Fatima Begum', report_type: 'financial', generated_at: '2025-08-14' },
-        { patient_name: 'Mohammad Ali', report_type: 'appointment', generated_at: '2025-08-13' }
-      ]);
+      setRecentReports([]);
     }
   };
 
@@ -159,31 +165,12 @@ const PatientReports = () => {
     setIsGenerating(true);
     
     try {
-      const response = await fetch('http://localhost:8000/api/reports/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          patient_id: parseInt(selectedPatient),
-          report_type: reportType,
-          date_from: dateRange.from || null,
-          date_to: dateRange.to || null
-        })
+      const data = await apiService.post('/reports/generate', {
+        patient_id: parseInt(selectedPatient),
+        report_type: reportType,
+        date_from: dateRange.from || null,
+        date_to: dateRange.to || null
       });
-
-      if (!response.ok) {
-        // Try to get error details from response
-        try {
-          const errorData = await response.json();
-          throw new Error(errorData.message || `HTTP ${response.status}: Failed to generate report`);
-        } catch (jsonError) {
-          throw new Error(`HTTP ${response.status}: Failed to generate report`);
-        }
-      }
-
-      const data = await response.json();
       
       if (data.success) {
         setGeneratedReport(data.data);
@@ -530,7 +517,7 @@ const PatientReports = () => {
                     Select Patient
                   </h3>
                   <button
-                    onClick={fetchPatientsWithBilling}
+                    onClick={fetchAllPatients}
                     disabled={isLoadingPatients}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center gap-2"
                   >
@@ -558,12 +545,15 @@ const PatientReports = () => {
                   {isLoadingPatients ? (
                     <div className="flex items-center justify-center p-8">
                       <div className="w-8 h-8 border-2 border-blue-600/30 border-t-blue-600 rounded-full animate-spin"></div>
-                      <span className="ml-3 text-gray-600">Loading patients with billing records...</span>
+                      <span className="ml-3 text-gray-600">Loading patients...</span>
                     </div>
                   ) : filteredPatients.length === 0 ? (
                     <div className="text-center p-6 text-gray-500">
                       <User className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                      <p>No patients found with billing records</p>
+                      <p>No patients found</p>
+                      <p className="text-sm text-gray-400 mt-1">
+                        {searchTerm ? 'Try adjusting your search criteria' : 'Add patients to generate reports'}
+                      </p>
                     </div>
                   ) : (
                     filteredPatients.map((patient) => (
@@ -584,12 +574,20 @@ const PatientReports = () => {
                                 <CheckCircle className="w-6 h-6 text-blue-600" />
                               )}
                             </div>
-                            <p className="text-sm text-gray-600">{patient.age} years • {patient.gender}</p>
-                            <p className="text-sm text-gray-500">{patient.phone}</p>
+                            <p className="text-sm text-gray-600">
+                              {patient.age ? `${patient.age} years` : 'Age N/A'} • {patient.gender || 'Gender N/A'}
+                            </p>
+                            <p className="text-sm text-gray-500">{patient.phone || 'Phone N/A'}</p>
                             <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200">
                               <div className="text-xs text-green-600">
-                                <span className="font-medium">৳{patient.total_amount?.toLocaleString() || '0'}</span>
-                                <span className="text-gray-500"> • {patient.total_billings || 0} bills</span>
+                                {patient.total_amount ? (
+                                  <>
+                                    <span className="font-medium">৳{patient.total_amount?.toLocaleString()}</span>
+                                    <span className="text-gray-500"> • {patient.total_billings || 0} bills</span>
+                                  </>
+                                ) : (
+                                  <span className="text-gray-500">No billing records yet</span>
+                                )}
                               </div>
                               <div className="text-xs text-gray-500">
                                 Last: {patient.last_visit || 'N/A'}

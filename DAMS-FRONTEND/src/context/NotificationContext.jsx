@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import notificationService from '../api/notificationService';
 
 const NotificationContext = createContext();
 
@@ -13,220 +14,177 @@ export const useNotifications = () => {
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [lastNotificationId, setLastNotificationId] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [showNewNotificationAlert, setShowNewNotificationAlert] = useState(false);
 
-  // Fetch notifications from API
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (params = {}) => {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      setLoading(true);
+      console.log('Fetching notifications...');
       
-      const response = await fetch('http://localhost:8000/api/notifications', {
-        signal: controller.signal
-      });
+      const response = await notificationService.getAll(params);
+      console.log('Notifications response:', response);
       
-      clearTimeout(timeoutId);
-      
-      if (response.ok) {
-        const result = await response.json();
-        const newNotifications = result.data || [];
-        
-        // Check if there are new notifications
-        if (newNotifications.length > 0 && lastNotificationId) {
-          const hasNewNotifications = newNotifications.some(notif => 
-            notif.id > lastNotificationId && notif.status === 'unread'
-          );
-          if (hasNewNotifications) {
-            setShowNewNotificationAlert(true);
-            // Auto-hide alert after 5 seconds
-            setTimeout(() => setShowNewNotificationAlert(false), 5000);
-          }
-        }
-        
+      if (response && response.success) {
+        const newNotifications = response.data || [];
         setNotifications(newNotifications);
+        
         const unread = newNotifications.filter(notif => notif.status === 'unread').length;
         setUnreadCount(unread);
         
-        // Update last notification ID
-        if (newNotifications.length > 0) {
-          setLastNotificationId(Math.max(...newNotifications.map(n => n.id)));
-        }
+        return response;
+      } else {
+        console.error('Failed to fetch notifications:', response?.message || 'Unknown error');
+        setNotifications([]);
+        setUnreadCount(0);
+        return { success: false, message: response?.message || 'Failed to fetch notifications' };
       }
     } catch (error) {
-      if (error.name !== 'AbortError') {
-        console.error('Error fetching notifications:', error);
-      }
+      console.error('Error fetching notifications:', error);
+      setNotifications([]);
+      setUnreadCount(0);
+      // Don't throw the error, return a failure response instead
+      return { success: false, message: error.message || 'Failed to connect to server' };
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Fetch notification stats
   const fetchStats = async () => {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+      const response = await notificationService.getStats();
       
-      const response = await fetch('http://localhost:8000/api/notifications-stats', {
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (response.ok) {
-        const result = await response.json();
-        return result.data || {};
+      if (response.success) {
+        return response.data || {};
+      } else {
+        console.error('Failed to fetch stats:', response.message);
+        return {};
       }
     } catch (error) {
-      if (error.name !== 'AbortError') {
-        console.error('Error fetching notification stats:', error);
-      }
+      console.error('Error fetching notification stats:', error);
+      return {};
     }
-    return {};
   };
 
-  // Mark notification as read
   const markAsRead = async (id) => {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const response = await notificationService.markAsRead(id);
       
-      const response = await fetch(`http://localhost:8000/api/notifications/${id}/mark-read`, {
-        method: 'PUT',
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (response.ok) {
-        setNotifications(prev => 
-          prev.map(notif => 
-            notif.id === id ? { ...notif, status: 'read', read_at: new Date() } : notif
-          )
-        );
+      if (response.success) {
+        setNotifications(prev => prev.map(notif => 
+          notif.id === id ? { ...notif, status: 'read' } : notif
+        ));
+        
         setUnreadCount(prev => Math.max(0, prev - 1));
+        
+        return response;
+      } else {
+        console.error('Failed to mark notification as read:', response.message);
+        return response;
       }
     } catch (error) {
-      if (error.name !== 'AbortError') {
-        console.error('Error marking notification as read:', error);
-      }
+      console.error('Error marking notification as read:', error);
+      throw error;
     }
   };
 
-  // Mark all notifications as read
   const markAllAsRead = async () => {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const response = await notificationService.markAllAsRead();
       
-      const response = await fetch('http://localhost:8000/api/notifications/mark-all-read', {
-        method: 'PUT',
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (response.ok) {
-        setNotifications(prev => 
-          prev.map(notif => ({ ...notif, status: 'read', read_at: new Date() }))
-        );
+      if (response.success) {
+        setNotifications(prev => prev.map(notif => ({ ...notif, status: 'read' })));
         setUnreadCount(0);
+        
+        return response;
+      } else {
+        console.error('Failed to mark all notifications as read:', response.message);
+        return response;
       }
     } catch (error) {
-      if (error.name !== 'AbortError') {
-        console.error('Error marking all notifications as read:', error);
-      }
+      console.error('Error marking all notifications as read:', error);
+      throw error;
     }
   };
 
-  // Delete notification
   const deleteNotification = async (id) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/notifications/${id}`, {
-        method: 'DELETE'
-      });
-      if (response.ok) {
-        const deletedNotification = notifications.find(notif => notif.id === id);
+      const response = await notificationService.delete(id);
+      
+      if (response.success) {
+        const deletedNotif = notifications.find(n => n.id === id);
         setNotifications(prev => prev.filter(notif => notif.id !== id));
-        if (deletedNotification && deletedNotification.status === 'unread') {
+        
+        if (deletedNotif && deletedNotif.status === 'unread') {
           setUnreadCount(prev => Math.max(0, prev - 1));
         }
+        
+        return response;
+      } else {
+        console.error('Failed to delete notification:', response.message);
+        return response;
       }
     } catch (error) {
       console.error('Error deleting notification:', error);
+      throw error;
     }
   };
 
-  // Archive notification
   const archiveNotification = async (id) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/notifications/${id}/archive`, {
-        method: 'PUT'
-      });
-      if (response.ok) {
-        const archivedNotification = notifications.find(notif => notif.id === id);
-        setNotifications(prev => prev.filter(notif => notif.id !== id));
-        if (archivedNotification && archivedNotification.status === 'unread') {
-          setUnreadCount(prev => Math.max(0, prev - 1));
-        }
+      const response = await notificationService.archive(id);
+      
+      if (response.success) {
+        setNotifications(prev => prev.map(notif => 
+          notif.id === id ? { ...notif, status: 'archived' } : notif
+        ));
+        
+        return response;
+      } else {
+        console.error('Failed to archive notification:', response.message);
+        return response;
       }
     } catch (error) {
       console.error('Error archiving notification:', error);
+      throw error;
     }
   };
 
-  // Clear new notification alert
-  const clearNewNotificationAlert = () => {
-    setShowNewNotificationAlert(false);
-  };
-
-  // Auto-fetch notifications every 30 seconds
   useEffect(() => {
-    let intervalId;
-    let isMounted = true;
+    fetchNotifications().catch(error => {
+      console.error('Initial fetch failed:', error);
+    });
     
-    const initializeNotifications = async () => {
-      if (isMounted) {
-        await fetchNotifications();
-      }
-    };
-    
-    initializeNotifications();
-    
-    // Set up interval only after initial fetch
-    intervalId = setInterval(() => {
-      if (isMounted) {
-        fetchNotifications();
-      }
+    const interval = setInterval(() => {
+      fetchNotifications().catch(error => {
+        console.error('Periodic fetch failed:', error);
+      });
     }, 30000);
     
-    return () => {
-      isMounted = false;
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
-  }, []); // Remove dependencies to prevent infinite loops
+    return () => clearInterval(interval);
+  }, []);
 
-  const value = {
+  const contextValue = {
     notifications,
     unreadCount,
+    loading,
     showNewNotificationAlert,
+    setShowNewNotificationAlert,
     fetchNotifications,
     fetchStats,
     markAsRead,
     markAllAsRead,
     deleteNotification,
     archiveNotification,
-    clearNewNotificationAlert,
     setNotifications,
     setUnreadCount
   };
 
   return (
-    <NotificationContext.Provider value={value}>
+    <NotificationContext.Provider value={contextValue}>
       {children}
     </NotificationContext.Provider>
   );
 };
 
-export default NotificationProvider;
+export default NotificationContext;

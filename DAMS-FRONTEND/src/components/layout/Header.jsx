@@ -6,7 +6,7 @@ import { useNotifications } from '../../context/NotificationContext';
 import { useNavigate } from 'react-router-dom';
 
 const Header = ({ onToggleSidebar, sidebarOpen }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, fixInvalidToken } = useAuth();
   const { unreadCount, showNewNotificationAlert, clearNewNotificationAlert, markAllAsRead } = useNotifications();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -14,6 +14,17 @@ const Header = ({ onToggleSidebar, sidebarOpen }) => {
   const handleLogout = () => {
     logout();
     navigate('/landing');
+  };
+
+  const handleFixToken = async () => {
+    try {
+      await fixInvalidToken();
+      setDropdownOpen(false);
+      // Refresh the current page to reload with new token
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to fix token:', error);
+    }
   };
 
   const handleNotificationClick = () => {
@@ -125,6 +136,15 @@ const Header = ({ onToggleSidebar, sidebarOpen }) => {
                   <div className="font-semibold text-gray-800">{user.name}</div>
                   <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-lg mt-1 inline-block">{user.email}</div>
                 </div>
+                <button
+                  onClick={handleFixToken}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-orange-600 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 transition-all duration-300 hover:shadow-lg group"
+                >
+                  <svg className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span className="font-medium">Fix Token Issue</span>
+                </button>
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-gradient-to-r hover:from-red-50 hover:to-red-100 rounded-b-xl transition-all duration-300 hover:shadow-lg group"

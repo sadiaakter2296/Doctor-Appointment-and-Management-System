@@ -20,11 +20,17 @@ class ApiService {
     const token = localStorage.getItem('auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('Using auth token:', token.substring(0, 20) + '...');
+    } else {
+      console.log('No auth token found in localStorage');
     }
 
     try {
-      console.log('API Request:', url, config);
+      console.log('API Request:', url, config.method || 'GET');
+      console.log('Request headers:', config.headers);
       const response = await fetch(url, config);
+      
+      console.log('Response status:', response.status, response.statusText);
       
       // Handle network errors
       if (!response.ok) {
@@ -32,7 +38,9 @@ class ApiService {
         let errorData;
         try {
           errorData = await response.json();
+          console.log('Error response data:', errorData);
         } catch (parseError) {
+          console.error('Failed to parse error response:', parseError);
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         
@@ -50,6 +58,14 @@ class ApiService {
           } else {
             errorMessage = errorData.message;
           }
+        }
+        
+        // Handle authentication errors
+        if (response.status === 401) {
+          console.error('Authentication failed - clearing invalid token');
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('auth_user');
+          // Don't redirect here to avoid infinite loops, let the component handle it
         }
         
         // If it's a 500 error, provide a user-friendly message
@@ -77,6 +93,7 @@ class ApiService {
       
       // Network errors
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        console.error('Network error details:', error);
         throw new Error('Network error. Please check your connection.');
       }
       

@@ -44,6 +44,8 @@ import LaboratoryManagement from './components/laboratory/LaboratoryManagement';
 import AdmissionManagement from './components/admissions/AdmissionManagement';
 import EmergencyManagement from './components/emergency/EmergencyManagement';
 import PrescriptionManagement from './components/prescriptions/PrescriptionManagement';
+import AuthDebug from './components/debug/AuthDebug';
+import TokenFixer from './components/auth/TokenFixer';
 
 
 const ProtectedRoute = ({ children }) => {
@@ -99,6 +101,7 @@ const AppContent = () => {
       <Route path="/notifications" element={<ProtectedRoute><DashboardLayout><NotificationCenter /></DashboardLayout></ProtectedRoute>} />
       <Route path="/audit" element={<ProtectedRoute><DashboardLayout><AuditLogs /></DashboardLayout></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><DashboardLayout><Settings /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/debug" element={<ProtectedRoute><DashboardLayout><AuthDebug /></DashboardLayout></ProtectedRoute>} />
       
       {/* Doctor routes */}
       <Route path="/doctor/dashboard" element={<ProtectedRoute><DashboardLayout><DoctorDashboard /></DashboardLayout></ProtectedRoute>} />
@@ -124,6 +127,7 @@ function App() {
         <AppProvider>
           <AuthProvider>
             <NotificationProvider>
+              <TokenFixer />
               <Router>
                 <AppContent />
               </Router>

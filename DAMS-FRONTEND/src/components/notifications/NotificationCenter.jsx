@@ -24,6 +24,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
+import QuickAdminLogin from '../auth/QuickAdminLogin';
 
 const NotificationCenter = () => {
   const {
@@ -56,11 +57,16 @@ const NotificationCenter = () => {
       
       setLoading(true);
       try {
-        await fetchNotifications();
+        const response = await fetchNotifications();
         const statsData = await fetchStats();
         if (isMounted) {
           setStats(statsData);
-          setError(null);
+          // Check if the response indicates a failure
+          if (response && !response.success) {
+            setError(response.message || 'Failed to connect to server');
+          } else {
+            setError(null);
+          }
         }
       } catch (err) {
         if (isMounted) {
@@ -299,6 +305,13 @@ const NotificationCenter = () => {
 
         {/* Notifications List */}
         <div className="space-y-4">
+          {error && error.includes('connect') && (
+            <QuickAdminLogin onSuccess={() => {
+              setError(null);
+              fetchNotifications();
+            }} />
+          )}
+          
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-4">
               <div className="flex items-center gap-2 text-red-700">

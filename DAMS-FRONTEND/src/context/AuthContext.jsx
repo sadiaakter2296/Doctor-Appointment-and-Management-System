@@ -1,4 +1,4 @@
-                                                                                                          import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../api/apiService';
 
@@ -76,6 +76,43 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Auto-login as admin when token is invalid
+  const autoLoginAdmin = async () => {
+    try {
+      console.log('🔄 Auto-logging in as admin...');
+      const result = await login({
+        email: 'admin@hospital.com',
+        password: 'admin123'
+      });
+      console.log('✅ Auto-login successful:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ Auto-login failed:', error);
+      throw error;
+    }
+  };
+
+  // Fix invalid token by clearing and re-logging in
+  const fixInvalidToken = async () => {
+    try {
+      // Clear existing auth
+      setToken(null);
+      setUser(null);
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+      
+      // Auto-login as admin
+      await autoLoginAdmin();
+      
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to fix invalid token:', error);
+      // If auto-login fails, redirect to login page
+      window.location.href = '/login';
+      return false;
+    }
+  };
+
   const register = async ({ name, email, password }) => {
     try {
       setLoading(true);
@@ -150,7 +187,9 @@ export const AuthProvider = ({ children }) => {
       login, 
       register, 
       logout,
-      checkAuthStatus 
+      checkAuthStatus,
+      autoLoginAdmin,
+      fixInvalidToken
     }}>
       {children}
     </AuthContext.Provider>

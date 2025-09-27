@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Notification API Test</title>
+</head>
+<body>
+    <h1>Testing Notification API</h1>
+    <button onclick="testLogin()">Test Admin Login</button>
+    <button onclick="testNotifications()">Test Notifications API</button>
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+        let token = '';
+
+        async function testLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@hospital.com',
+                        password: 'admin123'
+                    })
+                });
+
+                const data = await response.json();
+                console.log('Login response:', data);
+                
+                if (data.status === 'success') {
+                    token = data.data.token;
+                    localStorage.setItem('auth_token', token);
+                    document.getElementById('results').innerHTML = '<p style="color: green;">Login successful! Token: ' + token.substring(0, 20) + '...</p>';
+                } else {
+                    document.getElementById('results').innerHTML = '<p style="color: red;">Login failed: ' + JSON.stringify(data) + '</p>';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                document.getElementById('results').innerHTML = '<p style="color: red;">Login error: ' + error.message + '</p>';
+            }
+        }
+
+        async function testNotifications() {
+            try {
+                const storedToken = localStorage.getItem('auth_token') || token;
+                if (!storedToken) {
+                    document.getElementById('results').innerHTML = '<p style="color: red;">No token available. Please login first.</p>';
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE}/notifications`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${storedToken}`
+                    }
+                });
+
+                const data = await response.json();
+                console.log('Notifications response:', data);
+                
+                document.getElementById('results').innerHTML = '<p style="color: green;">Notifications API Response:</p><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                console.error('Notifications error:', error);
+                document.getElementById('results').innerHTML = '<p style="color: red;">Notifications error: ' + error.message + '</p>';
+            }
+        }
+
+        // Check if token exists on page load
+        window.onload = function() {
+            const storedToken = localStorage.getItem('auth_token');
+            if (storedToken) {
+                token = storedToken;
+                document.getElementById('results').innerHTML = '<p style="color: blue;">Found stored token: ' + storedToken.substring(0, 20) + '...</p>';
+            }
+        };
+    </script>
+</body>
+</html>
